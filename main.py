@@ -18,8 +18,9 @@ RUN_TIME = 10  # for how long to interact with model in sec
 
 # STEP 1. IDENTIFY OBJECT OF CONTROL W(p)
 
-udp_in = UDPIn(UDP_IP, UDP_PORT_IN, UDP_PORT_SET_POINT)
-udp_out = UDPOut(UDP_IP, UDP_PORT_OUT)
+udp_input_socket = UDPIn(UDP_IP, UDP_PORT_IN)
+udp_set_point_socket = UDPIn(UDP_IP, UDP_PORT_SET_POINT)
+udp_output_socket = UDPOut(UDP_IP, UDP_PORT_OUT)
 
 # 1.1. Send 1(t) to model and get h(t)
 
@@ -36,12 +37,12 @@ while (time_now - time_start) < RUN_TIME:
     if i + 2 <= len(set_point_signal_array):
         i += 1
 
-    udp_in.send_set_point(set_point)
+    udp_set_point_socket.send(set_point)
 
-    output_signal = udp_out.rcv()
+    output_signal = udp_output_socket.rcv()
     output_signal_array.append(output_signal)
     input_signal = set_point - output_signal  # Negative feedback
-    udp_in.send_input(input_signal)
+    udp_input_socket.send(input_signal)
 
     print(time_now - time_start, ": set_point=", set_point, ", input_signal=", input_signal, ", output_signal=",
           output_signal)
