@@ -12,8 +12,15 @@ class IdentifyOOC(object):
     import time
     log.basicConfig(format='%(asctime)s %(module)s [%(levelname)s]: %(message)s', level=log.DEBUG)
 
-    def __init__(self, ip_in: str, ip_out: str, port_in: int, port_set_point: int, port_out: int, run_time_sec=10,
-                 source_file="", transfer_func_max_order=5, preprocess_time_step=0.5):
+    def __init__(self,
+                 ip_in: str, ip_out: str,
+                 port_in: int, port_set_point: int, port_out: int,
+                 run_time_sec=10,
+                 source_file="",
+                 transfer_func_max_order=5,
+                 preprocess_time_step=0.5,
+                 values_precision=3):
+
         self.udp_input_socket = UDPIn(ip_in, port_in)
         self.udp_set_point_socket = UDPIn(ip_in, port_set_point)
         self.udp_output_socket = UDPOut(ip_out, port_out)
@@ -21,6 +28,7 @@ class IdentifyOOC(object):
         self.source_file = source_file
         self.TRANSFER_FUNC_MAX_ORDER = transfer_func_max_order
         self.PREPROCESS_TIME_STEP = preprocess_time_step
+        self.VALUES_PRECISION = values_precision
         log.info("Start IdenfifyOOC.py")
 
     '''
@@ -76,6 +84,9 @@ class IdentifyOOC(object):
         log.info("Preprocessing transient response data")
 
         time_step = self.PREPROCESS_TIME_STEP
+        values_precision = self.VALUES_PRECISION
+        time_precision = len(str(time_step).removeprefix("0."))
+        log.info("time prec: {}; val prec: {}".format(time_precision, values_precision))
         desired_time = 0.0
         time_difference = 1e10
         new_values_list = list()
@@ -86,7 +97,9 @@ class IdentifyOOC(object):
             if time_difference > abs(desired_time - values_list[i][0]):
                 time_difference = abs(desired_time - values_list[i][0])
             else:
-                new_values_list.append(values_list[i])
+                new_values_list.append([round(values_list[i][0], time_precision),
+                                        round(values_list[i][1], values_precision),
+                                        round(values_list[i][2], values_precision)])
                 desired_time += time_step
                 time_difference = 1e10
 
