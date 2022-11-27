@@ -1,3 +1,5 @@
+from random import random
+
 from Optimization import Optimization
 from TargetFunction import TargetFunction
 from TransferFunction import TransferFunction
@@ -112,9 +114,11 @@ class IdentifyOOC(object):
 
     def identify(self) -> TransferFunction:
         # Создаем списки начальных значений определенного размера для числителя и знаменателя передаточной функции
-        nominator = list([1.0] * self.TRANSFER_FUNC_MAX_ORDER)
-        # nominator = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
-        denominator = list([1.0] * self.TRANSFER_FUNC_MAX_ORDER)
+        nominator = list()
+        denominator = list()
+        for i in range(self.TRANSFER_FUNC_MAX_ORDER):
+            nominator.append(random() * 900 + 100)
+            denominator.append(random() * 900 + 100)
 
         model_transient_response = self.__read_transient_response(self.source_file)
         model_transient_response = self.__preprocess(model_transient_response)
