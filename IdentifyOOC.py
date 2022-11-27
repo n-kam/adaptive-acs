@@ -9,15 +9,16 @@ import logging as log
 class IdentifyOOC(object):
     import time
     log.basicConfig(format='%(asctime)s %(module)s [%(levelname)s]: %(message)s', level=log.DEBUG)
-    TRANSFER_FUNC_MAX_ORDER = 5
 
     def __init__(self, ip_in: str, ip_out: str, port_in: int, port_set_point: int, port_out: int, run_time_sec=10,
-                 source_file=""):
+                 source_file="", transfer_func_max_order=5, preprocess_time_step=0.5):
         self.udp_input_socket = UDPIn(ip_in, port_in)
         self.udp_set_point_socket = UDPIn(ip_in, port_set_point)
         self.udp_output_socket = UDPOut(ip_out, port_out)
         self.run_time_sec = run_time_sec
         self.source_file = source_file
+        self.TRANSFER_FUNC_MAX_ORDER = transfer_func_max_order
+        self.PREPROCESS_TIME_STEP = preprocess_time_step
         log.info("Start IdenfifyOOC.py")
 
     '''
@@ -69,11 +70,10 @@ class IdentifyOOC(object):
     процесс длится до 10 секунд. Поэтому можно проредить список, сократив точность до 1/2 секунды. Также можно 
     округлить данные до 3 знака после запятой '''
 
-    @staticmethod
-    def __preprocess(values_list: list[list[float, float, float]]) -> list[list[float, float, float]]:
+    def __preprocess(self, values_list: list[list[float, float, float]]) -> list[list[float, float, float]]:
         log.info("Preprocessing transient response data")
 
-        time_step = 0.5  # нужно оставить данные за каждые 1/2 секунды
+        time_step = self.PREPROCESS_TIME_STEP
         desired_time = 0.0
         time_difference = 1e10
         new_values_list = list()
