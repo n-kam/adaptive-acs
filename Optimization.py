@@ -11,26 +11,26 @@ class Optimization(object):
     @staticmethod
     def adam(target_func, values: list[float],
              values_precision=0.01,
-             tf_precision=0.0001,
-             step=10,
+             tf_precision=1e-6,
+             step=0.1,
              beta1=0.9,
              beta2=0.999,
              max_iter=10000) -> list:
-        log.info("Started Adam optimization algorithm")
+        # log.debug("Started Adam optimization algorithm")
         values = numpy.array(values)
         M = numpy.array([0.0] * len(values))
         V = numpy.array([0.0] * len(values))
         values_prev = values + numpy.array([values_precision * 2] * len(values))
         iteration = 1
         time_start = time.time()
-        log.debug("Started Adam optimization algorithm while loop")
+        # log.debug("Started Adam optimization algorithm while loop")
 
         while (abs((values - values_prev).any()) > values_precision) & (iteration < max_iter) & (
                 target_func(values) > tf_precision):
             values_prev = values
-            log.debug("Start gradient calculation")
+            # log.debug("Start gradient calculation")
             gradient = numdifftools.Gradient(target_func)(values)
-            log.debug("Finish gradient calculation")
+            # log.debug("Finish gradient calculation")
             M = beta1 * M + (1 - beta1) * gradient
             V = beta2 * V + (1 - beta2) * gradient ** 2
             m = M / (1 - beta1 ** iteration)
