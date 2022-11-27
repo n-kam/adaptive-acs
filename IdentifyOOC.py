@@ -29,11 +29,9 @@ class IdentifyOOC(object):
 
         if source_file == "":
             log.info("Reading transient response from matlab model")
-            set_point_signal = 1.0
-
             log.info("Waiting for the model to start...")
-            output_signal = self.udp_output_socket.rcv()
-            self.udp_set_point_socket.send(set_point_signal)
+            set_point_signal = 1.0
+            output_signal = 0.0
 
             time_start = self.time.time()
             time_now = time_start
