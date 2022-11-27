@@ -65,25 +65,30 @@ class IdentifyOOC(object):
 
         return output_signal_list
 
-    '''
-    Нормализуем данные, убирая нулевые значения в начале и сдвигая выходные величины, если они запаздывают 
-    относительно входных. Снятие данных переделано, больше не требуется
-    '''
+    '''Предварительная обработка данных. Нам не нужно 1000 точек, чтобы описать функцию 5-й степени. Переходной 
+    процесс длится до 10 секунд. Поэтому можно проредить список, сократив точность до 1/2 секунды. Также можно 
+    округлить данные до 3 знака после запятой '''
 
-    # @staticmethod
-    # def __normalize(values_list: list[list[float, float, float]]) -> list[list[float, float, float]]:
-    #     log.info("Normalizing transient response data")
-    #
-    #     # Remove first reading with time = 0
-    #     if values_list[0][0] == 0.0:
-    #         values_list.pop(0)
-    #
-    #     # # remove values from start if set point or output equals 0
-    #     # i = 0
-    #     # while (i < len(values_list)) & ((values_list[0][1] == 0.0) | (values_list[0][2] == 0.0)):
-    #     #     values_list.pop(0)
-    #
-    #     return values_list
+    @staticmethod
+    def __preprocess(values_list: list[list[float, float, float]]) -> list[list[float, float, float]]:
+        log.info("Preprocessing transient response data")
+
+        time_step = 0.5  # нужно оставить данные за каждые 1/2 секунды
+        desired_time = 0.0
+        time_difference = 1e10
+        new_values_list = list()
+
+        # Проходимся по списку снятых значений и находим ближайшие значения времен для каждого желаемого времени (от
+        # 0 с шагом time_step). Складываем найденные значения в новый список
+        for i in range(len(values_list)):
+            if time_difference > abs(desired_time - values_list[i][0]):
+                time_difference = abs(desired_time - values_list[i][0])
+            else:
+                new_values_list.append(values_list[i])
+                desired_time += time_step
+                time_difference = 1e10
+
+        return new_values_list
 
     @staticmethod
     def __save_transient_response_to_file(output_file: str, values_list: list):
@@ -112,7 +117,8 @@ class IdentifyOOC(object):
         denominator = list([1.0] * self.TRANSFER_FUNC_MAX_ORDER)
 
         model_transient_response = self.__read_transient_response(self.source_file)
-        # model_transient_response = self.__normalize(model_transient_response)
+        model_transient_response = self.__preprocess(model_transient_response)
+        log.debug("Preprocessed model transient response: {}".format(model_transient_response))
 
         # Кладем числитель и знаменатель передаточной функции в один список для передачи его в оптимизатор
         ab_values = list()
