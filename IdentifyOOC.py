@@ -17,7 +17,8 @@ class IdentifyOOC(object):
                  port_in: int, port_set_point: int, port_out: int,
                  run_time_sec=10,
                  source_file="",
-                 transfer_func_max_order=5,
+                 transfer_func_nominator_max_order=5,
+                 transfer_func_denominator_max_order=5,
                  preprocess_time_step=0.5,
                  values_precision=3):
 
@@ -26,7 +27,8 @@ class IdentifyOOC(object):
         self.udp_output_socket = UDPOut(ip_out, port_out)
         self.run_time_sec = run_time_sec
         self.source_file = source_file
-        self.TRANSFER_FUNC_MAX_ORDER = transfer_func_max_order
+        self.TRANSFER_FUNC_NOM_MAX_ORDER = transfer_func_nominator_max_order
+        self.TRANSFER_FUNC_DENOM_MAX_ORDER = transfer_func_denominator_max_order
         self.PREPROCESS_TIME_STEP = preprocess_time_step
         self.VALUES_PRECISION = values_precision
         log.info("Start IdenfifyOOC.py")
@@ -126,12 +128,18 @@ class IdentifyOOC(object):
     '''
 
     def identify(self) -> TransferFunction:
-        # Создаем списки начальных значений определенного размера для числителя и знаменателя передаточной функции
+        # Создаем списки рандомных начальных значений для числителя и знаменателя передаточной функции
         nominator = list()
         denominator = list()
-        for i in range(self.TRANSFER_FUNC_MAX_ORDER):
-            nominator.append(random() * 900 + 100)
-            denominator.append(random() * 900 + 100)
+        # todo: переделать так, чтобы не было хардкода для сдвига начальных значений (какие обычно у коэффициентов
+        #  передаточных функций диапазоны, чтобы можно было выбрать выбрать оптимальные пределы для рандома начальных
+        #  значений?):
+        multiplication_shift = 5
+        addition_shift = 0
+        for i in range(self.TRANSFER_FUNC_NOM_MAX_ORDER + 1):
+            nominator.append(random() * multiplication_shift + addition_shift)
+        for i in range(self.TRANSFER_FUNC_DENOM_MAX_ORDER + 1):
+            denominator.append(random() * multiplication_shift + addition_shift)
 
         model_transient_response = self.__read_transient_response(self.source_file)
         model_transient_response = self.__preprocess(model_transient_response)
@@ -144,16 +152,15 @@ class IdentifyOOC(object):
         log.debug("ab_values: {}".format(ab_values))
 
         # Вызов оптимизатора
+        log.info("Initial coefficients: nominator:{}, denominator:{}".format(nominator, denominator))
         optimization_target_func = TargetFunction(model_transient_response, len(nominator), len(denominator))
-        log.debug("opt targ func: {}".format(optimization_target_func))
         optimization = Optimization()
         ab_values = optimization.adam(optimization_target_func.tf, ab_values)
 
         # Разделяем числитель и знаменатель из одного входного списка на два
         nominator = ab_values[:len(nominator)]
-        log.debug("nominator: {}".format(nominator))
         denominator = ab_values[len(nominator):]
-        log.debug("denominator: {}".format(denominator))
+        log.info("Final (optimized) coefficients: nominator:{}, denominator:{}".format(nominator, denominator))
         optimization_transfer_function = TransferFunction(nominator, denominator)
 
         return optimization_transfer_function
