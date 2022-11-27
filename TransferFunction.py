@@ -1,5 +1,20 @@
 class TransferFunction(object):
-    @staticmethod
-    def w(p, a0=0, a1=0, a2=0, a3=0, a4=0, a5=0, a6=0, a7=0, b0=0, b1=0, b2=0, b3=0, b4=0, b5=0, b6=0, b7=0):
-        return (a7 * p ** 7 + a6 * p ** 6 + a5 * p ** 5 + a4 * p ** 4 + a3 * p ** 3 + a2 * p ** 2 + a1 * p + a0) / \
-               (b7 * p ** 7 + b6 * p ** 6 + b5 * p ** 5 + b4 * p ** 4 + b3 * p ** 3 + b2 * p ** 2 + b1 * p + b0)
+
+    def __init__(self, nominator_list: list[float], denominator_list: list[float]):
+        self.nominator_list = nominator_list
+        self.denominator_list = denominator_list
+
+    def evaluate(self, p) -> float:
+        nominator_val = 0.0
+        nominator_len = len(self.nominator_list)
+
+        for i in range(nominator_len):
+            nominator_val += self.nominator_list[i] * (p ** (nominator_len - 1 - i))
+
+        denominator_val = 0.0
+        denominator_len = len(self.denominator_list)
+
+        for i in range(denominator_len):
+            denominator_val += self.denominator_list[i] * (p ** (denominator_len - 1 - i))
+
+        return nominator_val / denominator_val
