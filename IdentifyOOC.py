@@ -45,13 +45,10 @@ class IdentifyOOC(object):
                 output_signal = self.udp_output_socket.rcv()
                 output_signal_list.append([time_now - time_start, set_point_signal, output_signal])
 
-                log.info(time_now - time_start, ": set_point=", set_point_signal, ", input_signal=", input_signal,
-                         ", output_signal=", output_signal)
                 log.info("{}: set_point={}, input_signal={}, output_signal={}".format(time_now - time_start,
                                                                                       set_point_signal, input_signal,
                                                                                       output_signal))
 
-            # print("output_signal_list:", output_signal_list)
             log.info("output_signal_list size:{}".format(len(output_signal_list)))
 
         else:
