@@ -88,7 +88,7 @@ class IdentifyOOC(object):
         time_step = self.PREPROCESS_TIME_STEP
         values_precision = self.VALUES_PRECISION
         time_precision = len(str(time_step).removeprefix("0."))
-        log.info("time prec: {}; val prec: {}".format(time_precision, values_precision))
+        # log.debug("time prec: {}; val prec: {}".format(time_precision, values_precision))
         desired_time = 0.0
         time_difference = 1e10
         new_values_list = list()
@@ -149,7 +149,7 @@ class IdentifyOOC(object):
         ab_values = list()
         ab_values.extend(nominator)
         ab_values.extend(denominator)
-        log.debug("ab_values: {}".format(ab_values))
+        # log.debug("ab_values: {}".format(ab_values))
 
         # Вызов оптимизатора
         log.info("Initial coefficients: nominator:{}, denominator:{}".format(nominator, denominator))
