@@ -21,10 +21,13 @@ class TargetFunction(object):
 
         self.model_transient_response_list = model_transient_response_list
 
+        # todo: переделать так, чтобы не было хардкода. список может получиться неправильной длины:
+        self.timeline = [x / 2 for x in range(0, 20)]
+
     def tf(self, ab_values: list) -> float:
 
-        if (self.nominator_len + self.denominator_len) != len(ab_values):
-            raise Exception("Dimensions mismatch")
+        # if (self.nominator_len + self.denominator_len) != len(ab_values):
+        #     raise Exception("Dimensions mismatch")
 
         # Разделяем числитель и знаменатель из одного входного массива
         nominator = ab_values[:self.nominator_len]
@@ -34,9 +37,7 @@ class TargetFunction(object):
 
         # Находим переходную характеристику для теоретической (подбираемой) функции с высокой частотой дискретизации
         matlab_transfer_function = matlab.tf(nominator, denominator)
-        # todo: переделать так, чтобы не было хардкода. список может получиться неправильной длины:
-        timeline = [x / 2 for x in range(0, 20)]
-        [y, x] = matlab.step(matlab_transfer_function, timeline)
+        [y, x] = matlab.step(matlab_transfer_function, self.timeline)
         optimization_transient_response_list = list(y)
         # log.debug("Trans. resp. sizes should match. For model it is: {}; for optimizator: {}".format(
         #     len(self.model_transient_response_list), len(y)))
