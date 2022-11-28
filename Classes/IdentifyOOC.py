@@ -1,10 +1,10 @@
 from random import random
 
-from Optimization import Optimization
-from TargetFunction import TargetFunction
-from TransferFunction import TransferFunction
-from UDPIn import UDPIn
-from UDPOut import UDPOut
+from Classes.Optimization import Optimization
+from Classes.TargetFunction import TargetFunction
+from Classes.TransferFunction import TransferFunction
+from Classes.UDPIn import UDPIn
+from Classes.UDPOut import UDPOut
 import logging as log
 
 

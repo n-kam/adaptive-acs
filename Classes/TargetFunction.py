@@ -2,7 +2,7 @@ import logging as log
 
 from control import matlab
 
-from ListIntegrator import ListIntegrator
+from Classes.ListIntegrator import ListIntegrator
 
 
 class TargetFunction(object):
