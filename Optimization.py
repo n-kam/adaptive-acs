@@ -10,10 +10,10 @@ class Optimization(object):
 
     @staticmethod
     def adam(target_func, values: list[float],
-             values_precision=0.1,
+             values_precision=0.01,
              tf_precision=1e-6,
              # todo: подобрать более оптимальное значение шага, желательно, в зависимости от степеней входной функции:
-             step=0.01,
+             step=0.1,
              beta1=0.9,
              beta2=0.999,
              max_iter=10000) -> list[float]:
@@ -49,7 +49,9 @@ class Optimization(object):
                 target_func_min_value = target_func_curr_value
                 best_values = values
 
-            log.debug("tf={}; [{}] values={}; grad={}".format(target_func(values), iteration, values, gradient))
+            log.debug("[{}] tf = {};".format(iteration, target_func_curr_value))
+            log.debug("values   = {}".format(values))
+            log.debug("gradient = {}".format(gradient))
 
         time_end = time.time()
 
