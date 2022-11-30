@@ -20,8 +20,8 @@ class Optimization(object):
         # log.debug("Started Adam optimization algorithm")
         values = numpy.array(values)
         best_values = values
-        M = numpy.array([0.0] * len(values))
-        V = numpy.array([0.0] * len(values))
+        biased_first_estimate = numpy.array([0.0] * len(values))
+        biased_second_estimate = numpy.array([0.0] * len(values))
         values_prev = values + numpy.array([values_precision * 2] * len(values))
         iteration = 0
         time_start = time.time()
@@ -36,11 +36,12 @@ class Optimization(object):
             # log.debug("Start gradient calculation")
             gradient = numdifftools.Gradient(target_func)(values)
             # log.debug("Finish gradient calculation")
-            M = beta1 * M + (1 - beta1) * gradient
-            V = beta2 * V + (1 - beta2) * gradient ** 2
-            m = M / (1 - beta1 ** iteration)
-            v = V / (1 - beta2 ** iteration)
-            values = values - step * m / (numpy.sqrt(v) + values_precision)
+            biased_first_estimate = beta1 * biased_first_estimate + (1 - beta1) * gradient
+            biased_second_estimate = beta2 * biased_second_estimate + (1 - beta2) * gradient ** 2
+            corrected_first_estimate = biased_first_estimate / (1 - beta1 ** iteration)
+            corrected_second_estimate = biased_second_estimate / (1 - beta2 ** iteration)
+            values = values - step * corrected_first_estimate / \
+                     (numpy.sqrt(corrected_second_estimate) + values_precision)
             target_func_curr_value = target_func(values)
 
             # Запоминаем лучше значения коэффициентов на случай вылета за отсечку по итерациям, т.к. значение целевой
