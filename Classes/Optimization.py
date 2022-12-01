@@ -16,8 +16,8 @@ class Optimization(object):
              step=0.1,
              beta1=0.9,
              beta2=0.999,
-             max_iter=10000) -> list[float]:
-        # log.debug("Started Adam optimization algorithm")
+             max_iter=10_000) -> list[float]:
+        log.info("Started Adam optimization algorithm")
         values = numpy.array(values)
         best_values = values
         biased_first_estimate = numpy.array([0.0] * len(values))
@@ -25,9 +25,9 @@ class Optimization(object):
         values_prev = values + numpy.array([values_precision * 2] * len(values))
         iteration = 0
         time_start = time.time()
+        time_prev_output = time.time()
         target_func_curr_value = target_func(values)
         target_func_min_value = 1e10
-        # log.debug("Started Adam optimization algorithm while loop")
 
         while (abs((values - values_prev).any()) > values_precision) & (iteration < max_iter) & (
                 target_func_curr_value > tf_precision):
@@ -50,9 +50,17 @@ class Optimization(object):
                 target_func_min_value = target_func_curr_value
                 best_values = values
 
-            log.debug("[{}] tf = {};".format(iteration, target_func_curr_value))
-            log.debug("values   = {}".format(values))
-            log.debug("gradient = {}".format(gradient))
+            # Вывод в лог по ходу расчетов
+            output_iter_step = 10
+            if iteration % output_iter_step == 0:
+                time_now = time.time()
+                run_speed = output_iter_step / (time_now - time_prev_output)
+                time_prev_output = time_now
+                eta_minutes = (max_iter - iteration) / run_speed / 60
+                log.debug("({}) Run speed: {:.1f} iter/s. Time passed: {:.1f} min. ETA: {:.1f} min."
+                          "".format(iteration, run_speed, (time_now - time_start) / 60, eta_minutes))
+                log.debug("val  = {}; tf = {}".format(values, target_func_curr_value))
+                log.debug("grad = {};\n".format(gradient))
 
         time_end = time.time()
 
