@@ -19,8 +19,7 @@ class IdentifyOOC(object):
                  source_file="",
                  transfer_func_nominator_max_order=5,
                  transfer_func_denominator_max_order=5,
-                 preprocess_time_step=0.5,
-                 values_precision=3):
+                 preprocess_time_step=0.5):
 
         self.udp_input_socket = UDPIn(ip_in, port_in)
         self.udp_set_point_socket = UDPIn(ip_in, port_set_point)
@@ -30,7 +29,6 @@ class IdentifyOOC(object):
         self.TRANSFER_FUNC_NOM_MAX_ORDER = transfer_func_nominator_max_order
         self.TRANSFER_FUNC_DENOM_MAX_ORDER = transfer_func_denominator_max_order
         self.PREPROCESS_TIME_STEP = preprocess_time_step
-        self.VALUES_PRECISION = values_precision
         log.info("Start IdenfifyOOC.py")
 
     '''
@@ -86,9 +84,6 @@ class IdentifyOOC(object):
         log.info("Preprocessing transient response data")
 
         time_step = self.PREPROCESS_TIME_STEP
-        values_precision = self.VALUES_PRECISION
-        time_precision = len(str(time_step).removeprefix("0."))
-        log.debug("time prec: {}; val prec: {}".format(time_precision, values_precision))
         desired_time = 0.0
         time_difference = 1e10
         new_values_list = list()
