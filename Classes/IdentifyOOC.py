@@ -11,12 +11,15 @@ import logging as log
 class IdentifyOOC(object):
     import time
     log.basicConfig(format='%(asctime)s %(module)s [%(levelname)s]: %(message)s', level=log.DEBUG)
+    adam = "adam"
+    classic = "classic"
 
     def __init__(self,
                  ip_in: str, ip_out: str,
                  port_in: int, port_set_point: int, port_out: int,
                  run_time_sec=10,
                  source_file="",
+                 algorithm=adam,
                  transfer_func_nominator_max_order=5,
                  transfer_func_denominator_max_order=5,
                  preprocess_time_step=0.5):
@@ -26,6 +29,7 @@ class IdentifyOOC(object):
         self.udp_output_socket = UDPOut(ip_out, port_out)
         self.run_time_sec = run_time_sec
         self.source_file = source_file
+        self.ALGORITHM = algorithm
         self.TRANSFER_FUNC_NOM_MAX_ORDER = transfer_func_nominator_max_order
         self.TRANSFER_FUNC_DENOM_MAX_ORDER = transfer_func_denominator_max_order
         self.PREPROCESS_TIME_STEP = preprocess_time_step
@@ -97,7 +101,7 @@ class IdentifyOOC(object):
             #                                                                 desired_time))
             if abs(desired_time - values_list[i][0]) > time_difference:
                 new_values_list.append(values_list[i - 1][2])
-                log.debug("Appending for time {}".format(values_list[i - 1][0]))
+                # log.debug("Appending for time {}".format(values_list[i - 1][0]))
                 desired_time += time_step
             time_difference = abs(values_list[i][0] - desired_time)
 
@@ -140,7 +144,7 @@ class IdentifyOOC(object):
         model_transient_response = self.__read_transient_response(self.source_file)
         # log.debug("Initial model transient response: {}".format(model_transient_response))
         model_transient_response_values = self.__preprocess(model_transient_response)
-        log.debug("Preprocessed model transient response: {}".format(model_transient_response_values))
+        log.debug("Preprocessed model transient response values: {}".format(model_transient_response_values))
 
         # Кладем числитель и знаменатель передаточной функции в один список для передачи его в оптимизатор
         ab_values = list()
@@ -152,7 +156,12 @@ class IdentifyOOC(object):
         log.info("Initial coefficients: nominator:{}, denominator:{}".format(nominator, denominator))
         optimization_target_func = TargetFunction(model_transient_response_values, len(nominator), len(denominator))
         optimization = Optimization()
-        ab_values = optimization.adam(optimization_target_func.tf, ab_values)
+        if self.ALGORITHM == self.adam:
+            ab_values = optimization.adam(optimization_target_func.tf, ab_values)
+        elif self.ALGORITHM == self.classic:
+            ab_values = optimization.classic(optimization_target_func.tf, ab_values)
+        else:
+            raise Exception("Algorithm {} is not recognized.".format(self.ALGORITHM))
 
         # Разделяем числитель и знаменатель из одного входного списка на два
         nominator = ab_values[:len(nominator)]

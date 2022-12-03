@@ -46,23 +46,88 @@ class Optimization(object):
                 target_func_min_value = target_func_curr_value
                 best_values = values
 
-            # Вывод в лог по ходу расчетов
+            # Вывод в лог по ходу расчетов каждые N итераций
             output_iter_step = 10
             if iteration % output_iter_step == 0:
                 time_now = time.time()
                 run_speed = output_iter_step / (time_now - time_prev_output)
                 time_prev_output = time_now
                 eta_minutes = (max_iter - iteration) / run_speed / 60
-                log.debug("({}) Run speed: {:.1f} iter/s. Time passed: {:.1f} min. Max iter ETA: {:.1f} min."
-                          "".format(iteration, run_speed, (time_now - time_start) / 60, eta_minutes))
+                log.debug("({}) Running Adam optimization. Speed: {:.1f} iter/s. Time passed: {:.1f} min. "
+                          "Max iter ETA: {:.1f} min.".format(iteration,
+                                                             run_speed,
+                                                             (time_now - time_start) / 60,
+                                                             eta_minutes))
                 log.debug("val  = {}; tf = {}".format(values, target_func_curr_value))
                 log.debug("grad = {};\n".format(gradient))
 
         time_end = time.time()
 
-        log.info("Time of run: {}. Integral quality, current: {}, min: {}".format(time_end - time_start,
-                                                                                  target_func_curr_value,
-                                                                                  target_func_min_value))
+        log.info("Time of run: {}. Integral quality current: {}, min: {}".format(time_end - time_start,
+                                                                                 target_func_curr_value,
+                                                                                 target_func_min_value))
+
+        if iteration == max_iter:
+            log.warning("Maximum number of iterations exceeded. Returned values may be suboptimal")
+            values = best_values
+
+        return values
+
+    @staticmethod
+    def classic(target_func, values: list[float],
+                tf_precision=1e-3,
+                # todo: подобрать более оптимальное значение шага, желательно, в зависимости от степеней входной
+                #  функции:
+                step=0.01,
+                max_iter=10_000,
+                # todo: поменять на True, когда решится проблема с overflow:
+                divide_step=False) -> list[float]:
+        log.info("Started Classic optimization algorithm")
+        values = numpy.array(values)
+        best_values = values
+        iteration = 0
+        time_start = time.time()
+        time_prev_output = time.time()
+        target_func_curr_value = target_func(values)
+        target_func_min_value = 1e10
+
+        while (iteration < max_iter) & (target_func_curr_value > tf_precision):
+            iteration += 1
+            gradient = numdifftools.Gradient(target_func)(values)
+            # Если целевая функция на следующем шаге станет больше, чем на текущем, сделать градиентный шаг поменьше,
+            # в надежде снизить ее скачки. (Получается фигня полная, шаг уходит в ноль и ЦФ стоит на месте в итоге.
+            # Поэтому пока флаг выключен)
+            if divide_step & (target_func(values - step * gradient) > target_func(values)):
+                step /= 2
+            values = values - step * gradient
+            target_func_curr_value = target_func(values)
+
+            # Запоминаем лучше значения коэффициентов на случай вылета за отсечку по итерациям, т.к. значение целевой
+            # функции может скакать в процессе расчета и последние значения в случае вылета могут не быть лучшими
+            if target_func_curr_value < target_func_min_value:
+                target_func_min_value = target_func_curr_value
+                best_values = values
+
+            # Вывод в лог по ходу расчетов каждые N итераций
+            output_iter_step = 10
+            if iteration % output_iter_step == 0:
+                time_now = time.time()
+                run_speed = output_iter_step / (time_now - time_prev_output)
+                time_prev_output = time_now
+                eta_minutes = (max_iter - iteration) / run_speed / 60
+                log.debug("({}) Running Classic optimization. Speed: {:.1f} iter/s. Time passed: {:.1f} min. "
+                          "Max iter ETA: {:.1f} min.".format(iteration,
+                                                             run_speed,
+                                                             (time_now - time_start) / 60,
+                                                             eta_minutes))
+                log.debug("val  = {}; tf = {}; step = {}".format(values, target_func_curr_value, step))
+                log.debug("grad = {};\n".format(gradient))
+
+        time_end = time.time()
+
+        log.info("Time of run: {}. Integral quality current: {}, min: {}".format(time_end - time_start,
+                                                                                 target_func_curr_value,
+                                                                                 target_func_min_value))
 
         if iteration == max_iter:
             log.warning("Maximum number of iterations exceeded. Returned values may be suboptimal")
