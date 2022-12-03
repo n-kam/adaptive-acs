@@ -96,9 +96,12 @@ class IdentifyOOC(object):
         # Проходимся по списку снятых значений и находим ближайшие значения времен для каждого желаемого времени (от
         # 0 с шагом time_step). Складываем последний столбец из найденных значений в новый список
         for i in range(len(values_list)):
-            log.debug("({}) Line: {}; time diff = {}; des time = {}".format(i, values_list[i], time_difference, desired_time))
+            # log.debug("({}) Line: {}; time diff = {}; des time = {}".format(i,
+            #                                                                 values_list[i],
+            #                                                                 time_difference,
+            #                                                                 desired_time))
             if abs(desired_time - values_list[i][0]) > time_difference:
-                new_values_list.append(round(values_list[i - 1][2], values_precision))
+                new_values_list.append(values_list[i - 1][2])
                 log.debug("Appending for time {}".format(values_list[i - 1][0]))
                 desired_time += time_step
             time_difference = abs(values_list[i][0] - desired_time)
