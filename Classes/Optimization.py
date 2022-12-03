@@ -10,7 +10,6 @@ class Optimization(object):
 
     @staticmethod
     def adam(target_func, values: list[float],
-             values_precision=0.01,
              tf_precision=1e-6,
              # todo: подобрать более оптимальное значение шага, желательно, в зависимости от степеней входной функции:
              step=0.1,
@@ -22,20 +21,14 @@ class Optimization(object):
         best_values = values
         biased_first_estimate = numpy.array([0.0] * len(values))
         biased_second_estimate = numpy.array([0.0] * len(values))
-        values_prev = values + numpy.array([values_precision * 2] * len(values))
         iteration = 0
         time_start = time.time()
         time_prev_output = time.time()
         target_func_curr_value = target_func(values)
         target_func_min_value = 1e10
-        # log.debug("val - prev: {}".format(abs(values - values_prev)))
-        # log.debug("val prec numpy array: {}".format(numpy.array([values_precision] * len(values))))
-        # log.debug("val - prev > val_prec: {}".format(abs(values - values_prev) > numpy.array([values_precision] * len(values))))
 
-        while (abs((values - values_prev).any()) > values_precision) & (iteration < max_iter) & (
-                target_func_curr_value > tf_precision):
+        while (iteration < max_iter) & (target_func_curr_value > tf_precision):
             iteration += 1
-            values_prev = values
             # log.debug("Start gradient calculation")
             gradient = numdifftools.Gradient(target_func)(values)
             # log.debug("Finish gradient calculation")
@@ -44,7 +37,7 @@ class Optimization(object):
             corrected_first_estimate = biased_first_estimate / (1 - beta1 ** iteration)
             corrected_second_estimate = biased_second_estimate / (1 - beta2 ** iteration)
             values = values - step * corrected_first_estimate / \
-                     (numpy.sqrt(corrected_second_estimate) + values_precision)
+                     (numpy.sqrt(corrected_second_estimate))
             target_func_curr_value = target_func(values)
 
             # Запоминаем лучше значения коэффициентов на случай вылета за отсечку по итерациям, т.к. значение целевой
@@ -52,10 +45,6 @@ class Optimization(object):
             if target_func_curr_value < target_func_min_value:
                 target_func_min_value = target_func_curr_value
                 best_values = values
-
-            # log.debug("val - prev: {}".format(abs(values - values_prev)))
-            # log.debug("val prec numpy array: {}".format(numpy.array([values_precision] * len(values))))
-            # log.debug("val - prev > val_prec: {}".format(abs(values - values_prev) > numpy.array([values_precision] * len(values))))
 
             # Вывод в лог по ходу расчетов
             output_iter_step = 10
