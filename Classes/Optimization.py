@@ -28,6 +28,9 @@ class Optimization(object):
         time_prev_output = time.time()
         target_func_curr_value = target_func(values)
         target_func_min_value = 1e10
+        # log.debug("val - prev: {}".format(abs(values - values_prev)))
+        # log.debug("val prec numpy array: {}".format(numpy.array([values_precision] * len(values))))
+        # log.debug("val - prev > val_prec: {}".format(abs(values - values_prev) > numpy.array([values_precision] * len(values))))
 
         while (abs((values - values_prev).any()) > values_precision) & (iteration < max_iter) & (
                 target_func_curr_value > tf_precision):
@@ -50,6 +53,10 @@ class Optimization(object):
                 target_func_min_value = target_func_curr_value
                 best_values = values
 
+            # log.debug("val - prev: {}".format(abs(values - values_prev)))
+            # log.debug("val prec numpy array: {}".format(numpy.array([values_precision] * len(values))))
+            # log.debug("val - prev > val_prec: {}".format(abs(values - values_prev) > numpy.array([values_precision] * len(values))))
+
             # Вывод в лог по ходу расчетов
             output_iter_step = 10
             if iteration % output_iter_step == 0:
@@ -57,14 +64,16 @@ class Optimization(object):
                 run_speed = output_iter_step / (time_now - time_prev_output)
                 time_prev_output = time_now
                 eta_minutes = (max_iter - iteration) / run_speed / 60
-                log.debug("({}) Run speed: {:.1f} iter/s. Time passed: {:.1f} min. ETA: {:.1f} min."
+                log.debug("({}) Run speed: {:.1f} iter/s. Time passed: {:.1f} min. Max iter ETA: {:.1f} min."
                           "".format(iteration, run_speed, (time_now - time_start) / 60, eta_minutes))
                 log.debug("val  = {}; tf = {}".format(values, target_func_curr_value))
                 log.debug("grad = {};\n".format(gradient))
 
         time_end = time.time()
 
-        log.info("time of run: {}".format(time_end - time_start))
+        log.info("Time of run: {}. Integral quality, current: {}, min: {}".format(time_end - time_start,
+                                                                                  target_func_curr_value,
+                                                                                  target_func_min_value))
 
         if iteration == max_iter:
             log.warning("Maximum number of iterations exceeded. Returned values may be suboptimal")

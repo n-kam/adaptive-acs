@@ -31,7 +31,9 @@ class TargetFunction(object):
         matlab_transfer_function = matlab.tf(nominator, denominator)
         [y, x] = matlab.step(matlab_transfer_function, self.timeline)
         optimization_transient_response_values = list(y)
-        # log.debug("Trans. resp. sizes should match. For model it is: {}; for optimizator: {}".format(
-        #     len(self.model_transient_response_list), len(y)))
+        x = list(x)
+        # log.debug("Opt x: {}".format(x))
+        # log.debug("Opt TR: {}".format(self.model_transient_response_values))
+        # log.debug("Model TR: {}".format(optimization_transient_response_values))
 
         return self.list_integrator.calc(self.model_transient_response_values, optimization_transient_response_values)
