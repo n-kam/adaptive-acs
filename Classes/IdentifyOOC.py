@@ -82,7 +82,7 @@ class IdentifyOOC(object):
     процесс длится до 10 секунд. Поэтому можно проредить список, сократив точность до 1/2 секунды. Также можно 
     округлить данные до 3 знака после запятой '''
 
-    def __preprocess(self, values_list: list[list[float, float, float]]) -> list[list[float, float, float]]:
+    def __preprocess(self, values_list: list[list[float, float, float]]) -> list[float]:
         log.info("Preprocessing transient response data")
 
         time_step = self.PREPROCESS_TIME_STEP
@@ -94,14 +94,15 @@ class IdentifyOOC(object):
         new_values_list = list()
 
         # Проходимся по списку снятых значений и находим ближайшие значения времен для каждого желаемого времени (от
-        # 0 с шагом time_step). Складываем найденные значения в новый список
+        # 0 с шагом time_step). Складываем последний столбец из найденных значений в новый список
         for i in range(len(values_list)):
             if time_difference > abs(desired_time - values_list[i][0]):
                 time_difference = abs(desired_time - values_list[i][0])
             else:
-                new_values_list.append([round(values_list[i][0], time_precision),
-                                        round(values_list[i][1], values_precision),
-                                        round(values_list[i][2], values_precision)])
+                # new_values_list.append([round(values_list[i][0], time_precision),
+                #                         round(values_list[i][1], values_precision),
+                #                         round(values_list[i][2], values_precision)])
+                new_values_list.append(round(values_list[i][2], values_precision))
                 desired_time += time_step
                 time_difference = 1e10
 
@@ -142,8 +143,8 @@ class IdentifyOOC(object):
             denominator.append(random() * multiplication_shift + addition_shift)
 
         model_transient_response = self.__read_transient_response(self.source_file)
-        model_transient_response = self.__preprocess(model_transient_response)
-        log.debug("Preprocessed model transient response: {}".format(model_transient_response))
+        model_transient_response_values = self.__preprocess(model_transient_response)
+        log.debug("Preprocessed model transient response: {}".format(model_transient_response_values))
 
         # Кладем числитель и знаменатель передаточной функции в один список для передачи его в оптимизатор
         ab_values = list()
@@ -153,7 +154,7 @@ class IdentifyOOC(object):
 
         # Вызов оптимизатора
         log.info("Initial coefficients: nominator:{}, denominator:{}".format(nominator, denominator))
-        optimization_target_func = TargetFunction(model_transient_response, len(nominator), len(denominator))
+        optimization_target_func = TargetFunction(model_transient_response_values, len(nominator), len(denominator))
         optimization = Optimization()
         ab_values = optimization.adam(optimization_target_func.tf, ab_values)
 

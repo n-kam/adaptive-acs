@@ -9,18 +9,10 @@ class TargetFunction(object):
     log.basicConfig(format='%(asctime)s %(module)s [%(levelname)s]: %(message)s', level=log.DEBUG)
     list_integrator = ListIntegrator()
 
-    def __init__(self, model_transient_response: list, nominator_len: int, denominator_len: int):
-        self.model_transient_response = model_transient_response
+    def __init__(self, model_transient_response_values: list, nominator_len: int, denominator_len: int):
+        self.model_transient_response_values = model_transient_response_values
         self.nominator_len = nominator_len
         self.denominator_len = denominator_len
-
-        # Выделяем из списка "время / входная / выходная величина" только последний столбец
-        model_transient_response_list = list()
-        for i in range(len(self.model_transient_response)):
-            model_transient_response_list.append(self.model_transient_response[i][2])
-
-        self.model_transient_response_list = model_transient_response_list
-
         # todo: переделать так, чтобы не было хардкода. список может получиться неправильной длины:
         self.timeline = [x / 2 for x in range(0, 20)]
 
@@ -38,8 +30,8 @@ class TargetFunction(object):
         # Находим переходную характеристику для теоретической (подбираемой) функции с высокой частотой дискретизации
         matlab_transfer_function = matlab.tf(nominator, denominator)
         [y, x] = matlab.step(matlab_transfer_function, self.timeline)
-        optimization_transient_response_list = list(y)
+        optimization_transient_response_values = list(y)
         # log.debug("Trans. resp. sizes should match. For model it is: {}; for optimizator: {}".format(
         #     len(self.model_transient_response_list), len(y)))
 
-        return self.list_integrator.calc(self.model_transient_response_list, optimization_transient_response_list)
+        return self.list_integrator.calc(self.model_transient_response_values, optimization_transient_response_values)
