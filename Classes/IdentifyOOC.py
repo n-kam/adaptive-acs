@@ -120,6 +120,21 @@ class IdentifyOOC(object):
 
         return new_values_list, new_time_values_list
 
+    '''Постобработка данных. Разделить все величины на коэффициент перед старшей степенью числителя. Округлить до 
+    rounding_precision знака после запятой '''
+
+    @staticmethod
+    def __postprocess(nominator: list[float],
+                      denominator: list[float],
+                      rounding_precision=1) -> tuple[list[float], list[float]]:
+        nom0 = nominator[0]
+        for i in range(len(nominator)):
+            nominator[i] = round(nominator[i] / nom0, rounding_precision)
+        for i in range(len(denominator)):
+            denominator[i] = round(denominator[i] / nom0, rounding_precision)
+
+        return nominator, denominator
+
     @staticmethod
     def __save_transient_response_to_file(output_file: str, values_list: list):
         log.info("Saving transient response to file {}".format(output_file))
@@ -181,7 +196,7 @@ class IdentifyOOC(object):
             denominator.append(random() * multiplication_shift + addition_shift)
 
         model_transient_response = self.__read_transient_response(self.source_file)
-        log.debug("Initial model transient response: {}".format(model_transient_response))
+        # log.debug("Initial model transient response: {}".format(model_transient_response))
         [model_transient_response_values, model_transient_response_times] = self.__preprocess(model_transient_response)
         log.debug("Preprocessed model transient response values: {}".format(model_transient_response_values))
 
@@ -205,7 +220,10 @@ class IdentifyOOC(object):
         # Разделяем числитель и знаменатель из одного входного списка на два
         nominator = ab_values[:len(nominator)]
         denominator = ab_values[len(nominator):]
-        log.info("Final (optimized) coefficients: nominator:{}, denominator:{}".format(nominator, denominator))
+        log.debug("Optimized coefficients without postprocessing: "
+                  "nominator:{}, denominator:{}".format(nominator, denominator))
+        nominator, denominator = self.__postprocess(nominator, denominator)
+        log.info("Optimized coefficients: nominator:{}, denominator:{}".format(nominator, denominator))
         optimization_transfer_function = TransferFunction(nominator, denominator)
 
         # Строим графики. Красный - модель. Зеленый - подобранный. При хорошем подборе они могут накладываться друг
