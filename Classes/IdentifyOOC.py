@@ -39,6 +39,10 @@ class IdentifyOOC(object):
     Снимаем переходную характеристику. Если задано имя файла, то считываем из него, иначе, снимаем с модели
     '''
 
+    # Временный публичный метод для тестов
+    def read_transient_response(self, source_file="") -> list[list[float, float, float]]:
+        return self.__read_transient_response(source_file)
+
     def __read_transient_response(self, source_file="") -> list[list[float, float, float]]:
         output_signal_list = list()
 

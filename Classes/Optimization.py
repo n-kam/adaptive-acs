@@ -1,15 +1,16 @@
 import time
 
-import numdifftools
 import numpy
 import logging as log
+
+from Classes.StupidGradient import StupidGradient
 
 
 class Optimization(object):
     log.basicConfig(format='%(asctime)s %(module)s [%(levelname)s]: %(message)s', level=log.DEBUG)
+    stupid_gradient = StupidGradient()
 
-    @staticmethod
-    def adam(target_func, values: list[float],
+    def adam(self, target_func, values: list[float],
              tf_precision=1e-6,
              # todo: подобрать более оптимальное значение шага, желательно, в зависимости от степеней входной функции:
              step=0.1,
@@ -29,15 +30,15 @@ class Optimization(object):
 
         while (iteration < max_iter) & (target_func_curr_value > tf_precision):
             iteration += 1
-            # log.debug("Start gradient calculation")
-            gradient = numdifftools.Gradient(target_func)(values)
-            # log.debug("Finish gradient calculation")
+            # gradient = numdifftools.Gradient(target_func)(values)
+            # log.warning("ndt grad {}".format(gradient))
+            gradient = numpy.array(self.stupid_gradient.gradient(target_func, values))
+            # log.warning("stup grad {}".format(gradient))
             biased_first_estimate = beta1 * biased_first_estimate + (1 - beta1) * gradient
             biased_second_estimate = beta2 * biased_second_estimate + (1 - beta2) * gradient ** 2
             corrected_first_estimate = biased_first_estimate / (1 - beta1 ** iteration)
             corrected_second_estimate = biased_second_estimate / (1 - beta2 ** iteration)
-            values = values - step * corrected_first_estimate / \
-                     (numpy.sqrt(corrected_second_estimate))
+            values = values - step * corrected_first_estimate / (numpy.sqrt(corrected_second_estimate))
             target_func_curr_value = target_func(values)
 
             # Запоминаем лучше значения коэффициентов на случай вылета за отсечку по итерациям, т.к. значение целевой
@@ -73,17 +74,16 @@ class Optimization(object):
 
         return values
 
-    @staticmethod
-    def classic(target_func, values: list[float],
+    def classic(self, target_func, values: list[float],
                 tf_precision=1e-3,
                 # todo: подобрать более оптимальное значение шага, желательно, в зависимости от степеней входной
                 #  функции:
                 step=0.01,
                 max_iter=10_000,
                 # todo: поменять на True, когда решится проблема с overflow:
-                divide_step=False) -> list[float]:
+                stepdown_flag=False) -> list[float]:
         log.info("Started Classic optimization algorithm")
-        values = numpy.array(values)
+        # values = numpy.array(values)
         best_values = values
         iteration = 0
         time_start = time.time()
@@ -92,12 +92,19 @@ class Optimization(object):
         target_func_min_value = 1e10
 
         while (iteration < max_iter) & (target_func_curr_value > tf_precision):
-            iteration += 1
-            gradient = numdifftools.Gradient(target_func)(values)
-            # Если целевая функция на следующем шаге станет больше, чем на текущем, сделать градиентный шаг поменьше,
-            # в надежде снизить ее скачки. (Получается фигня полная, шаг уходит в ноль и ЦФ стоит на месте в итоге.
-            # Поэтому пока флаг выключен)
-            if divide_step & (target_func(values - step * gradient) > target_func(values)):
+            # gradient = numdifftools.Gradient(target_func)(values)
+            gradient = numpy.array(self.stupid_gradient.gradient(target_func, values))
+
+            # Если целевая функция на следующем шаге станет больше, чем на текущем, или перескочит экстремум,
+            # сделать градиентный шаг поменьше, в надежде снизить ее скачки. (Получается фигня полная, шаг уходит в
+            # ноль и ЦФ стоит на месте в итоге. Поэтому пока флаг выключен)
+            target_func_next_value = target_func(values - step * gradient)
+            # target_func_curr_value = target_func(values)
+            if stepdown_flag & (
+                    ((target_func_next_value > 0) & (target_func_curr_value < 0)) | \
+                    ((target_func_next_value < 0) & (target_func_curr_value > 0)) | \
+                    (target_func_next_value > target_func_curr_value)
+            ):
                 step /= 2
             values = values - step * gradient
             target_func_curr_value = target_func(values)
@@ -122,6 +129,7 @@ class Optimization(object):
                                                              eta_minutes))
                 log.debug("val  = {}; tf = {}; step = {}".format(values, target_func_curr_value, step))
                 log.debug("grad = {};\n".format(gradient))
+            iteration += 1
 
         time_end = time.time()
 
