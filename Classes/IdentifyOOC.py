@@ -1,4 +1,9 @@
+import logging
 from random import random
+
+import numpy
+from control import matlab
+from matplotlib import pyplot
 
 from Classes.Optimization import Optimization
 from Classes.TargetFunction import TargetFunction
@@ -22,7 +27,8 @@ class IdentifyOOC(object):
                  algorithm=adam,
                  transfer_func_nominator_max_order=5,
                  transfer_func_denominator_max_order=5,
-                 preprocess_time_step=0.5):
+                 preprocess_time_step=0.5,
+                 results_plotting_enabled=False):
 
         self.udp_input_socket = UDPIn(ip_in, port_in)
         self.udp_set_point_socket = UDPIn(ip_in, port_set_point)
@@ -33,6 +39,7 @@ class IdentifyOOC(object):
         self.TRANSFER_FUNC_NOM_MAX_ORDER = transfer_func_nominator_max_order
         self.TRANSFER_FUNC_DENOM_MAX_ORDER = transfer_func_denominator_max_order
         self.PREPROCESS_TIME_STEP = preprocess_time_step
+        self.RESULTS_PLOTTING_ENABLED = results_plotting_enabled
         log.info("Start IdenfifyOOC.py")
 
     '''
@@ -88,12 +95,13 @@ class IdentifyOOC(object):
     процесс длится до 10 секунд. Поэтому можно проредить список, сократив точность до 1/2 секунды. Также можно 
     округлить данные до 3 знака после запятой '''
 
-    def __preprocess(self, values_list: list[list[float, float, float]]) -> list[float]:
+    def __preprocess(self, values_list: list[list[float, float, float]]) -> tuple[list[float], list[float]]:
         log.info("Preprocessing transient response data")
 
         time_step = self.PREPROCESS_TIME_STEP
         desired_time = 0.0
         time_difference = 1e10
+        new_time_values_list = list()
         new_values_list = list()
 
         # Проходимся по списку снятых значений и находим ближайшие значения времен для каждого желаемого времени (от
@@ -105,11 +113,12 @@ class IdentifyOOC(object):
             #                                                                 desired_time))
             if abs(desired_time - values_list[i][0]) > time_difference:
                 new_values_list.append(values_list[i - 1][2])
+                new_time_values_list.append(desired_time)
                 # log.debug("Appending for time {}".format(values_list[i - 1][0]))
                 desired_time += time_step
             time_difference = abs(values_list[i][0] - desired_time)
 
-        return new_values_list
+        return new_values_list, new_time_values_list
 
     @staticmethod
     def __save_transient_response_to_file(output_file: str, values_list: list):
@@ -126,6 +135,32 @@ class IdentifyOOC(object):
         output_file = output_basename + str(self.time.time()) + ".txt"
         self.__save_transient_response_to_file(output_file, self.__read_transient_response())
         return output_file
+
+    '''
+    Построить графики по результатам. Кто б мог догадаться, да?
+    '''
+
+    @staticmethod
+    def __plot_results(model_response_times: list[float],
+                       model_response_values: list[float],
+                       nominator: list[float],
+                       denominator: list[float]) -> None:
+
+        # Очистить логи от мусорных дебажных сообщений из внутренних библиотек pyplot'а
+        logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
+        logging.getLogger('matplotlib.pyplot').setLevel(logging.WARNING)
+        logging.getLogger('PIL').setLevel(logging.WARNING)
+
+        pyplot.grid(True)
+        pyplot.xticks(numpy.arange(0, 11, 1))
+        pyplot.yticks(numpy.arange(0, 1.1, 0.1))
+
+        pyplot.plot(model_response_times, model_response_values, 'red')
+
+        optimization_tf = matlab.tf(nominator, denominator)
+        [tf_values, x1] = matlab.step(optimization_tf, model_response_times)
+        pyplot.plot(model_response_times, tf_values, 'green')
+        pyplot.show()
 
     '''
     Основной метод, который вызывает все служебные методы
@@ -146,8 +181,8 @@ class IdentifyOOC(object):
             denominator.append(random() * multiplication_shift + addition_shift)
 
         model_transient_response = self.__read_transient_response(self.source_file)
-        # log.debug("Initial model transient response: {}".format(model_transient_response))
-        model_transient_response_values = self.__preprocess(model_transient_response)
+        log.debug("Initial model transient response: {}".format(model_transient_response))
+        [model_transient_response_values, model_transient_response_times] = self.__preprocess(model_transient_response)
         log.debug("Preprocessed model transient response values: {}".format(model_transient_response_values))
 
         # Кладем числитель и знаменатель передаточной функции в один список для передачи его в оптимизатор
@@ -172,5 +207,10 @@ class IdentifyOOC(object):
         denominator = ab_values[len(nominator):]
         log.info("Final (optimized) coefficients: nominator:{}, denominator:{}".format(nominator, denominator))
         optimization_transfer_function = TransferFunction(nominator, denominator)
+
+        # Строим графики. Красный - модель. Зеленый - подобранный. При хорошем подборе они могут накладываться друг
+        # на друга. Приближайте, если хотите убедиться, что оба построились
+        if self.RESULTS_PLOTTING_ENABLED:
+            self.__plot_results(model_transient_response_times, model_transient_response_values, nominator, denominator)
 
         return optimization_transfer_function
