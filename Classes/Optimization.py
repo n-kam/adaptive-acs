@@ -16,7 +16,7 @@ class Optimization(object):
              step=0.1,
              beta1=0.9,
              beta2=0.999,
-             max_iter=10_000) -> list[float]:
+             max_iter=15_000) -> list[float]:
         log.info("Started Adam optimization algorithm")
         values = numpy.array(values)
         best_values = values
@@ -75,13 +75,11 @@ class Optimization(object):
         return values
 
     def classic(self, target_func, values: list[float],
-                tf_precision=1e-3,
-                # todo: подобрать более оптимальное значение шага, желательно, в зависимости от степеней входной
-                #  функции:
-                step=0.01,
+                tf_precision=0.05,
+                step=0.1,
                 max_iter=10_000,
-                # todo: поменять на True, когда решится проблема с overflow:
-                stepdown_flag=False) -> list[float]:
+                # max_iter=1000,
+                stepdown_enabled=True) -> list[float]:
         log.info("Started Classic optimization algorithm")
         # values = numpy.array(values)
         best_values = values
@@ -100,12 +98,13 @@ class Optimization(object):
             # ноль и ЦФ стоит на месте в итоге. Поэтому пока флаг выключен)
             target_func_next_value = target_func(values - step * gradient)
             # target_func_curr_value = target_func(values)
-            if stepdown_flag & (
-                    ((target_func_next_value > 0) & (target_func_curr_value < 0)) | \
-                    ((target_func_next_value < 0) & (target_func_curr_value > 0)) | \
-                    (target_func_next_value > target_func_curr_value)
-            ):
+            if stepdown_enabled & (target_func_next_value > target_func_curr_value):
                 step /= 2
+            else:
+                # todo: подобрано на глаз. Это максимальное значение, которое можно поставить, при котором у меня не
+                #  начиналось расхождение. Но это только для текущей функции. При других снятых значениях,
+                #  может иметь смысл этот коэффициент поменять
+                step *= 1.8
             values = values - step * gradient
             target_func_curr_value = target_func(values)
 
@@ -116,7 +115,7 @@ class Optimization(object):
                 best_values = values
 
             # Вывод в лог по ходу расчетов каждые N итераций
-            output_iter_step = 10
+            output_iter_step = 100
             if iteration % output_iter_step == 0:
                 time_now = time.time()
                 run_speed = output_iter_step / (time_now - time_prev_output)
@@ -133,9 +132,9 @@ class Optimization(object):
 
         time_end = time.time()
 
-        log.info("Time of run: {}. Integral quality current: {}, min: {}".format(time_end - time_start,
-                                                                                 target_func_curr_value,
-                                                                                 target_func_min_value))
+        log.info("Time of run: {:.0f} sec. Integral quality current: {}, min: {}".format(time_end - time_start,
+                                                                                         target_func_curr_value,
+                                                                                         target_func_min_value))
 
         if iteration == max_iter:
             log.warning("Maximum number of iterations exceeded. Returned values may be suboptimal")
