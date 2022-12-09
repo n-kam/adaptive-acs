@@ -64,9 +64,9 @@ class Optimization(object):
 
         time_end = time.time()
 
-        log.info("Time of run: {}. Integral quality current: {}, min: {}".format(time_end - time_start,
-                                                                                 target_func_curr_value,
-                                                                                 target_func_min_value))
+        log.info("Time of run: {:.0f} sec. Integral quality current: {}, min: {}".format(time_end - time_start,
+                                                                                         target_func_curr_value,
+                                                                                         target_func_min_value))
 
         if iteration == max_iter:
             log.warning("Maximum number of iterations exceeded. Returned values may be suboptimal")
@@ -147,8 +147,8 @@ class Optimization(object):
     '''
 
     def gauss_seidel(self, target_func, values: list[float],
-                     tf_precision=0.01,  # если порядок теоретический заведомо больше, чем модельный
-                     # tf_precision=0.05,
+                     # tf_precision=0.01,  # если порядок теоретический заведомо больше, чем модельный
+                     tf_precision=0.05,
                      tf_derivative_precision=1e-3,
                      step=0.1,
                      max_iter=50_000,
@@ -169,7 +169,7 @@ class Optimization(object):
             log.debug("({}); tf = {}; tf_grad={}".format(iteration, target_func_curr_value,
                                                          self.stupid_gradient.gradient(target_func, values)))
             for i in range(len(values) - 1, -1, -1):
-                curr_step = step / (10 * inner_iteration + 1)
+                curr_step = step / (inner_iteration + 1)
                 tf_partial_derivative = self.stupid_gradient.partial_derivative(target_func, values, i)
                 log.debug("({}:{}); tf = {}; tf_part_deriv={}".format(iteration, i, target_func_curr_value,
                                                                       tf_partial_derivative))
@@ -186,7 +186,7 @@ class Optimization(object):
                         curr_step /= 2
                         values = list(values_save)
                         values[i] -= tf_partial_derivative * curr_step
-                    elif stepdown_enabled:
+                    elif stepdown_enabled & (curr_step < step):
                         curr_step *= 1.1
 
                     tf_partial_derivative = self.stupid_gradient.partial_derivative(target_func, values, i)
@@ -218,9 +218,9 @@ class Optimization(object):
 
         time_end = time.time()
 
-        log.info("Time of run: {}. Integral quality current: {}, min: {}".format(time_end - time_start,
-                                                                                 target_func_curr_value,
-                                                                                 target_func_min_value))
+        log.info("Time of run: {:.0f} sec. Integral quality current: {}, min: {}".format(time_end - time_start,
+                                                                                         target_func_curr_value,
+                                                                                         target_func_min_value))
 
         if iteration == max_iter:
             log.warning("Maximum number of iterations exceeded. Returned values may be suboptimal")

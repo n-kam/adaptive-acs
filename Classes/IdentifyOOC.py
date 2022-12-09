@@ -199,9 +199,9 @@ class IdentifyOOC(object):
         #     denominator.append(random() * multiplication_shift + addition_shift)
 
         for i in range(self.TRANSFER_FUNC_NOM_MAX_ORDER + 1):
-            nominator.append(0.1)
+            nominator.append(1)
         for i in range(self.TRANSFER_FUNC_DENOM_MAX_ORDER + 1):
-            denominator.append(0.1)
+            denominator.append(1)
 
         model_transient_response = self.__read_transient_response(self.source_file)
         # log.debug("Initial model transient response: {}".format(model_transient_response))
