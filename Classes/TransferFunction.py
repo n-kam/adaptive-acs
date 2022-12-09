@@ -18,3 +18,6 @@ class TransferFunction(object):
             denominator_val += self.denominator_list[i] * (p ** (denominator_len - 1 - i))
 
         return nominator_val / denominator_val
+
+    def get_coefficients(self) -> tuple[list[float], list[float]]:
+        return self.nominator_list, self.denominator_list

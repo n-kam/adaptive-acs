@@ -29,3 +29,6 @@ w_ooc = ooc_id.identify()
 
 # STEP 2. SET UP PID-CONTROLLER
 # todo
+
+# Кому нужно будет получить числитель и знаменатель подобранной передаточной функции модели, делать это следует так:
+[transfer_func_nominator, transfer_func_denominator] = w_ooc.get_coefficients()
