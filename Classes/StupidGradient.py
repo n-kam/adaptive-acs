@@ -9,25 +9,6 @@ class StupidGradient(object):
     def __init__(self, value_shift=1e-10):
         self.value_shift = value_shift
 
-    def old_gradient(self, func: callable(list[float]), values: list[float]) -> list[float]:
-        gradient = list()
-        for i in range(len(values)):
-            # print("i:", i)
-            # print("vals: ", values)
-            values_shifted_up = list(values)
-            values_shifted_down = list(values)
-            values_shifted_up[i] += self.value_shift
-            values_shifted_down[i] -= self.value_shift
-            # print("val_sf_up:{}; val_sh_dn:{}".format(values_shifted_up, values_shifted_down))
-            gradient_val = ((func(values_shifted_up) - func(values_shifted_down)) / (
-                    values_shifted_up[i] - values_shifted_down[i]))
-            # print("grad_val: ", gradient_val)
-            # gradient.append(
-            #     (func(values_shifted_up) - func(values_shifted_down)) / (values_shifted_up[i] - values_shifted_down[i]))
-            gradient.append(gradient_val)
-
-        return gradient
-
     def gradient(self, func: callable(list[float]), values: list[float]) -> list[float]:
         gradient = list()
         for i in range(len(values)):
@@ -42,6 +23,7 @@ class StupidGradient(object):
         values_shifted_down[mutable_var_number] -= self.value_shift
         partial_derivative_value = ((func(values_shifted_up) - func(values_shifted_down)) / (
                 values_shifted_up[mutable_var_number] - values_shifted_down[mutable_var_number]))
+
         return partial_derivative_value
 
 
@@ -58,7 +40,6 @@ def test():
     print("stupid pd 0: ", sg.partial_derivative(sg(), fun, M, 0))
     print("stupid pd 1: ", sg.partial_derivative(sg(), fun, M, 1))
     print("stupid pd 2: ", sg.partial_derivative(sg(), fun, M, 2))
-    print("stupid grad old: ", sg.old_gradient(sg(), fun, M))
     print("stupid grad new: ", sg.gradient(sg(), fun, M))
     M = numpy.array(M)
     print("ndt grad: ", numdifftools.Gradient(fun)(M))
