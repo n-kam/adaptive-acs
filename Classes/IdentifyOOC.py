@@ -18,6 +18,8 @@ class IdentifyOOC(object):
     log.basicConfig(format='%(asctime)s %(module)s [%(levelname)s]: %(message)s', level=log.DEBUG)
     adam = "adam"
     classic = "classic"
+    gauss_seidel = "gauss_seidel"
+    chain = "chain"
 
     def __init__(self,
                  ip_in: str, ip_out: str,
@@ -190,10 +192,16 @@ class IdentifyOOC(object):
         #  значений?):
         multiplication_shift = 5
         addition_shift = 0
+
+        # for i in range(self.TRANSFER_FUNC_NOM_MAX_ORDER + 1):
+        #     nominator.append(random() * multiplication_shift + addition_shift)
+        # for i in range(self.TRANSFER_FUNC_DENOM_MAX_ORDER + 1):
+        #     denominator.append(random() * multiplication_shift + addition_shift)
+
         for i in range(self.TRANSFER_FUNC_NOM_MAX_ORDER + 1):
-            nominator.append(random() * multiplication_shift + addition_shift)
+            nominator.append(0.1)
         for i in range(self.TRANSFER_FUNC_DENOM_MAX_ORDER + 1):
-            denominator.append(random() * multiplication_shift + addition_shift)
+            denominator.append(0.1)
 
         model_transient_response = self.__read_transient_response(self.source_file)
         # log.debug("Initial model transient response: {}".format(model_transient_response))
@@ -214,6 +222,13 @@ class IdentifyOOC(object):
             ab_values = optimization.adam(optimization_target_func.tf, ab_values)
         elif self.ALGORITHM == self.classic:
             ab_values = optimization.classic(optimization_target_func.tf, ab_values)
+        elif self.ALGORITHM == self.gauss_seidel:
+            ab_values = optimization.gauss_seidel(optimization_target_func.tf, ab_values)
+        elif self.ALGORITHM == self.chain:
+            ab_values = optimization.gauss_seidel(optimization_target_func.tf, ab_values, max_iter=1,
+                                                  tf_derivative_precision=1)
+            ab_values = optimization.classic(optimization_target_func.tf, ab_values, step=1e-8, tf_precision=1e-3,
+                                             stepdown_enabled=True)
         else:
             raise Exception("Algorithm {} is not recognized.".format(self.ALGORITHM))
 
