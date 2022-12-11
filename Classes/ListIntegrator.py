@@ -1,34 +1,18 @@
-import logging as log
+def calc(list_1: list[float], list_2: list[float]) -> float:
+    """
+    Расчет интеграла разности двух функций, представленных в виде списков одинакового размера из значений этих функций при одних и тех же значениях входной величины.
 
-
-class ListIntegrator(object):
-    log.basicConfig(format='%(asctime)s %(module)s [%(levelname)s]: %(message)s', level=log.DEBUG)
-
-    def __init__(self):
-        pass
-
-    """ 
-    "Интегрируем" две функции, представленные как соразмерные листы значений
+    :param list_1: Список значений первой функции.
+    :param list_2: Список значений второй функции.
+    :return: Интеграл разности.
     """
 
-    @staticmethod
-    def calc(list_1: list[float], list_2: list[float]) -> float:
-        integral_sum = 0
+    integral_sum = 0
 
-        if len(list_2) != len(list_1):
-            raise Exception("List sizes mismatch")
+    if len(list_2) != len(list_1):
+        raise Exception("List sizes mismatch")
 
-        # log.debug("list 1 (len = {}):{}".format(len(list_1), list_1))
-        # log.debug("list 2 (len = {}):{}".format(len(list_2), list_2))
+    for i in range(len(list_1)):
+        integral_sum += abs(list_1[i] - list_2[i])
 
-        for i in range(len(list_1)):
-            # log.debug("list1[{}]: {}".format(i, list_1[i]))
-            # log.debug("list2[{}]: {}".format(i, list_2[i]))
-
-            integral_sum += abs(list_1[i] - list_2[i])
-            # log.debug("curr diff: {}".format(abs(list_1[i] - list_2[i])))
-            # log.debug("curr sum: {}".format(integral_sum))
-
-        # exit(228)
-
-        return integral_sum
+    return integral_sum

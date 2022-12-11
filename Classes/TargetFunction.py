@@ -2,14 +2,20 @@ import logging as log
 
 from control import matlab
 
-from Classes.ListIntegrator import ListIntegrator
+from Classes import ListIntegrator
 
 
 class TargetFunction(object):
-    log.basicConfig(format='%(asctime)s %(module)s [%(levelname)s]: %(message)s', level=log.DEBUG)
-    list_integrator = ListIntegrator()
+    log.basicConfig(format='%(asctime)s %(module)s [%(levelname)s]: %(message)s', level=log.INFO)
 
-    def __init__(self, model_transient_response_values: list, nominator_len: int, denominator_len: int):
+    def __init__(self, model_transient_response_values: list[float], nominator_len: int, denominator_len: int):
+        """
+        Инициализация интегратора.
+
+        :param model_transient_response_values: Список из значений переходной характеристики, снятой с модели.
+        :param nominator_len: Длина списка коэффициентов числителя передаточной функции, по которой в tf() общий список коэффициентов будет разделен обратно на числитель и знаменатель.
+        :param denominator_len: Длина списка коэффициентов знаменателя передаточной функции.
+        """
         self.model_transient_response_values = model_transient_response_values
         self.nominator_len = nominator_len
         self.denominator_len = denominator_len
@@ -17,23 +23,19 @@ class TargetFunction(object):
         self.timeline = [x / 2 for x in range(0, 20)]
 
     def tf(self, ab_values: list) -> float:
+        """
+        Целевая функция.
 
-        # if (self.nominator_len + self.denominator_len) != len(ab_values):
-        #     raise Exception("Dimensions mismatch")
-
+        :param ab_values: Числитель и знаменатель передаточной функции, объединенный в общий список коэффициентов.
+        :return: Интегральная разница между переходной характеристикой, снятой с модели и подобранной оптимизатором.
+        """
         # Разделяем числитель и знаменатель из одного входного массива
         nominator = ab_values[:self.nominator_len]
-        # log.debug("nominator: {}".format(nominator))
         denominator = ab_values[self.nominator_len:]
-        # log.debug("denominator: {}".format(denominator))
 
-        # Находим переходную характеристику для теоретической (подбираемой) функции с высокой частотой дискретизации
+        # Находим переходную характеристику для теоретической (подбираемой) функции
         matlab_transfer_function = matlab.tf(nominator, denominator)
         [y, x] = matlab.step(matlab_transfer_function, self.timeline)
-        optimization_transient_response_values = list(y)
-        x = list(x)
-        # log.debug("Opt x: {}".format(x))
-        # log.debug("Opt TR: {}".format(self.model_transient_response_values))
-        # log.debug("Model TR: {}".format(optimization_transient_response_values))
+        optimization_transient_response_values = y
 
-        return self.list_integrator.calc(self.model_transient_response_values, optimization_transient_response_values)
+        return ListIntegrator.calc(self.model_transient_response_values, optimization_transient_response_values)

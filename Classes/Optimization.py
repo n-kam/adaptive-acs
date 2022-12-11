@@ -3,16 +3,15 @@ import time
 import numpy
 import logging as log
 
-from Classes.StupidGradient import StupidGradient
+from Classes.FastDerivative import FastGradient
 
 
 class Optimization(object):
-    log.basicConfig(format='%(asctime)s %(module)s [%(levelname)s]: %(message)s', level=log.DEBUG)
-    stupid_gradient = StupidGradient()
+    log.basicConfig(format='%(asctime)s %(module)s [%(levelname)s]: %(message)s', level=log.INFO)
+    stupid_gradient = FastGradient()
 
     def adam(self, target_func, values: list[float],
              tf_precision=0.01,
-             # todo: подобрать более оптимальное значение шага, желательно, в зависимости от степеней входной функции:
              step=0.001,
              beta1=0.9,
              beta2=0.999,
@@ -74,14 +73,31 @@ class Optimization(object):
 
         return values
 
-    def classic(self, target_func, values: list[float],
-                tf_precision=0.025,
-                step=0.1,
-                max_iter=10_000,
-                # max_iter=1000,
-                stepdown_enabled=True) -> list[float]:
-        log.info("Started Classic optimization algorithm")
-        # values = numpy.array(values)
+    def classic(self,
+                target_func: callable(list[float]),
+                values: list[float],
+                tf_precision: float = 0.025,
+                # tf_precision: float = 0.05,  # todo: revert before commit!!!
+                step: float = 0.1,
+                max_iter: int = 10_000,
+                output_iter_step: int = 1000,
+                # max_iter: int = 10,  # todo: revert before commit!!!
+                stepdown_enabled: bool = True) -> list[float]:
+        """
+        Не-очень-классический градиентный спуск. Отличается от классического переменным шагом, который в зависимости от значения целевой функции на следующем шаге может как уменьшаться, так и увеличиваться.
+
+        :param target_func: Целевая функция, значение которой необходимо минимизировать в результате рассчета.
+        :param values: Список исходных значений, передаваемых в целевую функцию.
+        :param tf_precision: Необходимая точность целевой функции.
+        :param step: Начальный шаг градиентного спуска.
+        :param output_iter_step: Выводить промежуточные результаты каждые N итераций.
+        :param max_iter: Отсечка по итерациям, при превышении которой алгоритм будет остановлен.
+        :param stepdown_enabled: Использовать ли спуск с переменным шагом или без (классический).
+        :return: Список из оптимизированных по минимуму целевой функции входных параметров.
+        """
+
+        log.info("Начало расчета методом классического градиентного спуска. Промежуточные результаты будут выводиться "
+                 "каждые {} итераций. Можете пока пойти заварить себе чай...".format(output_iter_step))
         best_values = values
         iteration = 0
         time_start = time.time()
@@ -90,13 +106,12 @@ class Optimization(object):
         target_func_min_value = 1e10
 
         while (iteration < max_iter) & (target_func_curr_value > tf_precision):
-            # gradient = numdifftools.Gradient(target_func)(values)
+            iteration += 1
             gradient = numpy.array(self.stupid_gradient.gradient(target_func, values))
 
             # Если целевая функция на следующем шаге станет больше, чем на текущем, или перескочит экстремум,
             # сделать градиентный шаг поменьше
             target_func_next_value = target_func(values - step * gradient)
-            # target_func_curr_value = target_func(values)
             if stepdown_enabled & (target_func_next_value > target_func_curr_value) & (step > 1e-8):
                 step /= 2
             elif stepdown_enabled:
@@ -106,43 +121,38 @@ class Optimization(object):
             values = values - step * gradient
             target_func_curr_value = target_func(values)
 
-            # Запоминаем лучше значения коэффициентов на случай вылета за отсечку по итерациям, т.к. значение целевой
-            # функции может скакать в процессе расчета и последние значения в случае вылета могут не быть лучшими
+            # Запоминаем лучше значения коэффициентов на случай вылета за отсечку по итерациям, т.к. значение целевой функции может скакать в процессе расчета и последние значения в случае вылета могут не быть лучшими
             if target_func_curr_value < target_func_min_value:
                 target_func_min_value = target_func_curr_value
                 best_values = values
 
             # Вывод в лог по ходу расчетов каждые N итераций
-            output_iter_step = 100
             if iteration % output_iter_step == 0:
                 time_now = time.time()
                 run_speed = output_iter_step / (time_now - time_prev_output)
                 time_prev_output = time_now
                 eta_minutes = (max_iter - iteration) / run_speed / 60
-                log.debug("({}) Running Classic optimization. Speed: {:.1f} iter/s. Time passed: {:.1f} min. "
-                          "Max iter ETA: {:.1f} min.".format(iteration,
-                                                             run_speed,
-                                                             (time_now - time_start) / 60,
-                                                             eta_minutes))
-                log.debug("val  = {}; tf = {}; step = {}".format(values, target_func_curr_value, step))
-                log.debug("grad = {};\n".format(gradient))
-            iteration += 1
+                log.info("({}) Классический метод. Скорость: {:.1f} итер./с. Время работы: {:.1f} мин. "
+                         "Прибл. время до отсечки по итерациям: {:.1f} min.".format(iteration,
+                                                                                  run_speed,
+                                                                                  (time_now - time_start) / 60,
+                                                                                  eta_minutes))
+                log.info("Значения параметров: {}".format(values))
+                log.info("Вектор градиента:    {}".format(gradient))
+                log.info("Целевая функция = {}; Текущий град. шаг = {}\n".format(target_func_curr_value, step))
 
         time_end = time.time()
 
-        log.info("Time of run: {:.0f} sec. Integral quality current: {}, min: {}".format(time_end - time_start,
-                                                                                         target_func_curr_value,
-                                                                                         target_func_min_value))
+        log.info("Время работы: {:.0f} с. Значение целевой функции последнее: {:.5f}, минимальное: {:.5f}".format(
+            time_end - time_start,
+            target_func_curr_value,
+            target_func_min_value))
 
         if iteration == max_iter:
-            log.warning("Maximum number of iterations exceeded. Returned values may be suboptimal")
+            log.warning("Выход за отсечку по итерациям. Итоговые значения могут быть неоптимальными")
             values = best_values
 
         return values
-
-    '''
-    Метод Гаусса-Зейделя. Шаг делает не сразу по всем переменным, а по каждой по отдельности
-    '''
 
     def gauss_seidel(self, target_func, values: list[float],
                      # tf_precision=0.01,  # если порядок теоретический заведомо больше, чем модельный
@@ -151,6 +161,9 @@ class Optimization(object):
                      step=0.1,
                      max_iter=50_000,
                      stepdown_enabled=True) -> list[float]:
+        """
+        Метод Гаусса-Зейделя. Шаг делает не сразу по всем переменным, а по каждой по отдельности
+        """
         log.info("Started Gauss-Seidel optimization algorithm")
         # values = numpy.array(values)
         best_values = values
