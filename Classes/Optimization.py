@@ -11,9 +11,9 @@ class Optimization(object):
     stupid_gradient = StupidGradient()
 
     def adam(self, target_func, values: list[float],
-             tf_precision=1e-6,
+             tf_precision=0.01,
              # todo: подобрать более оптимальное значение шага, желательно, в зависимости от степеней входной функции:
-             step=0.1,
+             step=0.001,
              beta1=0.9,
              beta2=0.999,
              max_iter=15_000) -> list[float]:
@@ -75,7 +75,7 @@ class Optimization(object):
         return values
 
     def classic(self, target_func, values: list[float],
-                tf_precision=0.05,
+                tf_precision=0.025,
                 step=0.1,
                 max_iter=10_000,
                 # max_iter=1000,
@@ -100,9 +100,7 @@ class Optimization(object):
             if stepdown_enabled & (target_func_next_value > target_func_curr_value) & (step > 1e-8):
                 step /= 2
             elif stepdown_enabled:
-                # todo: подобрано на глаз. Это максимальное значение, которое можно поставить, при котором у меня не
-                #  начиналось расхождение. Но это только для текущей функции. При других снятых значениях,
-                #  может иметь смысл этот коэффициент поменять
+                # todo: подобрано на глаз. Это максимальное значение, которое можно поставить, при котором у меня не начиналось расхождение. Но это только для текущей функции. При других снятых значениях, может иметь смысл этот коэффициент поменять
                 step *= 1.8
 
             values = values - step * gradient
@@ -169,52 +167,60 @@ class Optimization(object):
             log.debug("({}); tf = {}; tf_grad={}".format(iteration, target_func_curr_value,
                                                          self.stupid_gradient.gradient(target_func, values)))
             for i in range(len(values) - 1, -1, -1):
-                curr_step = step / (inner_iteration + 1)
+                curr_step = step
                 tf_partial_derivative = self.stupid_gradient.partial_derivative(target_func, values, i)
                 log.debug("({}:{}); tf = {}; tf_part_deriv={}".format(iteration, i, target_func_curr_value,
                                                                       tf_partial_derivative))
-                while abs(tf_partial_derivative) > tf_derivative_precision:
-                    inner_iteration += 1
+                while (inner_iteration < max_iter) & \
+                        (abs(tf_partial_derivative) > tf_derivative_precision) & \
+                        (target_func_curr_value > tf_precision):
                     values_save = list(values)
                     values[i] -= tf_partial_derivative * curr_step
 
                     # Если производная на следующем шаге поменяет знак, снизить шаг
                     tf_partial_derivative_next = self.stupid_gradient.partial_derivative(target_func, values, i)
-                    stepdown_needed = ((tf_partial_derivative_next > 0) & (tf_partial_derivative < 0)) | \
-                                      ((tf_partial_derivative_next < 0) & (tf_partial_derivative > 0))
+                    derivative_will_step_over_zero = ((tf_partial_derivative_next > 0) & (
+                            tf_partial_derivative < 0)) | ((tf_partial_derivative_next < 0) & (
+                            tf_partial_derivative > 0))
+                    derivative_value_will_rise = abs(tf_partial_derivative_next) >= abs(tf_partial_derivative)
+                    stepdown_needed = derivative_will_step_over_zero  # | derivative_value_will_rise
                     if stepdown_enabled & stepdown_needed:
                         curr_step /= 2
                         values = list(values_save)
                         values[i] -= tf_partial_derivative * curr_step
-                    elif stepdown_enabled & (curr_step < step):
-                        curr_step *= 1.1
+                    elif stepdown_enabled:  # & (curr_step < step):
+                        curr_step *= 1.2
 
-                    tf_partial_derivative = self.stupid_gradient.partial_derivative(target_func, values, i)
-                    log.debug("({}:{}:{}); val  = {}; tf = {}; tf_deriv = {},"
-                              " curr step = {}".format(inner_iteration,
-                                                       iteration, i,
-                                                       values,
-                                                       target_func_curr_value,
-                                                       tf_partial_derivative,
-                                                       curr_step))
+                    # Вывод в лог по ходу расчетов каждые N ВНУТРЕННИХ итераций
+                    output_iter_step = 1000
+                    if inner_iteration % output_iter_step == 0:
+                        tf_partial_derivative = self.stupid_gradient.partial_derivative(target_func, values, i)
+                        log.debug("({}:{}:{}); val  = {}; tf = {}; tf_deriv = {},"
+                                  " curr step = {}".format(inner_iteration,
+                                                           iteration, i,
+                                                           values,
+                                                           target_func_curr_value,
+                                                           tf_partial_derivative,
+                                                           curr_step))
+                        target_func_curr_value = target_func(values)
                     target_func_curr_value = target_func(values)
-                target_func_curr_value = target_func(values)
-            # break
 
-            # Вывод в лог по ходу расчетов каждые N итераций
-            output_iter_step = 10
-            if iteration % output_iter_step == 0:
-                time_now = time.time()
-                run_speed = output_iter_step / (time_now - time_prev_output)
-                time_prev_output = time_now
-                eta_minutes = (max_iter - iteration) / run_speed / 60
-                log.debug("({}) Running Classic optimization. Speed: {:.1f} iter/s. Time passed: {:.1f} min. "
-                          "Max iter ETA: {:.1f} min.".format(iteration,
-                                                             run_speed,
-                                                             (time_now - time_start) / 60,
-                                                             eta_minutes))
-                log.debug("val  = {}; tf = {}; step = {}".format(values, target_func_curr_value, curr_step))
-                # log.debug("grad = {};\n".format(gradient))
+                    inner_iteration += 1
+
+                # Вывод в лог по ходу расчетов каждые N ВНУТРЕННИХ итераций
+                output_iter_step = 10
+                if inner_iteration % output_iter_step == 0:
+                    time_now = time.time()
+                    run_speed = output_iter_step / (time_now - time_prev_output)
+                    time_prev_output = time_now
+                    eta_minutes = (max_iter - iteration) / run_speed / 60
+                    log.debug("({}) Running Classic optimization. Speed: {:.1f} iter/s. Time passed: {:.1f} min. "
+                              "Max iter ETA: {:.1f} min.".format(iteration,
+                                                                 run_speed,
+                                                                 (time_now - time_start) / 60,
+                                                                 eta_minutes))
+                    log.debug("val  = {}; tf = {}; step = {}".format(values, target_func_curr_value, curr_step))
+                    # log.debug("grad = {};\n".format(gradient))
 
         time_end = time.time()
 

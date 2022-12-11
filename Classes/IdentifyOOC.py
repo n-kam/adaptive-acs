@@ -18,7 +18,6 @@ class IdentifyOOC(object):
     adam = "adam"
     classic = "classic"
     gauss_seidel = "gauss_seidel"
-    chain = "chain"
 
     def __init__(self,
                  ip_in: str, ip_out: str,
@@ -208,16 +207,13 @@ class IdentifyOOC(object):
         optimization_target_func = TargetFunction(model_transient_response_values, len(nominator), len(denominator))
         optimization = Optimization()
         if self.ALGORITHM == self.adam:
+            log.warning("USAGE OF ADAM ALGORITHM IS NOT RECOMMENDED")
             ab_values = optimization.adam(optimization_target_func.tf, ab_values)
         elif self.ALGORITHM == self.classic:
             ab_values = optimization.classic(optimization_target_func.tf, ab_values)
         elif self.ALGORITHM == self.gauss_seidel:
+            log.warning("USAGE OF GAUSS-SEIDEL ALGORITHM IS NOT RECOMMENDED")
             ab_values = optimization.gauss_seidel(optimization_target_func.tf, ab_values)
-        elif self.ALGORITHM == self.chain:
-            ab_values = optimization.gauss_seidel(optimization_target_func.tf, ab_values, max_iter=1,
-                                                  tf_derivative_precision=1)
-            ab_values = optimization.classic(optimization_target_func.tf, ab_values, step=1e-8, tf_precision=1e-3,
-                                             stepdown_enabled=True)
         else:
             raise Exception("Algorithm {} is not recognized.".format(self.ALGORITHM))
 

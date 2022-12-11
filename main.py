@@ -21,11 +21,9 @@ RUN_TIME = 10  # for how long to interact with model in sec
 ooc_id = IdentifyOOC(UDP_IP_IN, UDP_IP_OUT, UDP_PORT_IN, UDP_PORT_SET_POINT, UDP_PORT_OUT,
                      # source_file="Assets/h_teor.txt",
                      source_file="Assets/h_model_1669583451.0397856.txt",
-                     # algorithm=IdentifyOOC.chain,
-                     algorithm=IdentifyOOC.gauss_seidel,
-                     # algorithm=IdentifyOOC.classic,
-                     transfer_func_nominator_max_order=0,
-                     transfer_func_denominator_max_order=2,
+                     algorithm=IdentifyOOC.classic,
+                     transfer_func_nominator_max_order=1,
+                     transfer_func_denominator_max_order=3,
                      results_plotting_enabled=True)
 w_ooc = ooc_id.identify()
 
