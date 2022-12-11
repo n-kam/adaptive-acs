@@ -1,5 +1,4 @@
 import logging
-from random import random
 
 import numpy
 from control import matlab
@@ -187,21 +186,11 @@ class IdentifyOOC(object):
         # Создаем списки рандомных начальных значений для числителя и знаменателя передаточной функции
         nominator = list()
         denominator = list()
-        # todo: переделать так, чтобы не было хардкода для сдвига начальных значений (какие обычно у коэффициентов
-        #  передаточных функций диапазоны, чтобы можно было выбрать выбрать оптимальные пределы для рандома начальных
-        #  значений?):
-        multiplication_shift = 5
-        addition_shift = 0
-
-        # for i in range(self.TRANSFER_FUNC_NOM_MAX_ORDER + 1):
-        #     nominator.append(random() * multiplication_shift + addition_shift)
-        # for i in range(self.TRANSFER_FUNC_DENOM_MAX_ORDER + 1):
-        #     denominator.append(random() * multiplication_shift + addition_shift)
 
         for i in range(self.TRANSFER_FUNC_NOM_MAX_ORDER + 1):
-            nominator.append(1)
+            nominator.append(10)
         for i in range(self.TRANSFER_FUNC_DENOM_MAX_ORDER + 1):
-            denominator.append(1)
+            denominator.append(10)
 
         model_transient_response = self.__read_transient_response(self.source_file)
         # log.debug("Initial model transient response: {}".format(model_transient_response))
