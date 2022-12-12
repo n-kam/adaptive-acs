@@ -29,23 +29,60 @@ def preprocess(values_list: list[list[float, float, float]], time_step: float = 
 
     return new_values_list, new_time_values_list
 
-# def postprocess(nominator: list[float],
-#                denominator: list[float],
-#                rounding_precision=1) -> tuple[list[float], list[float]]:
-#    """
-#    Постобработка данных. Разделить все величины на коэффициент перед старшей степенью числителя. Округлить до
-#    rounding_precision знака после запятой
-#
-#    :param nominator:
-#    :param denominator:
-#    :param rounding_precision:
-#    :return:
-#    """
-#    nom0 = nominator[0]
-#    for i in range(len(nominator)):
-#        nominator[i] = round(nominator[i] / nom0, rounding_precision)
-#    for i in range(len(denominator)):
-#        denominator[i] = round(denominator[i] / nom0, rounding_precision)
-#
-#    return nominator, denominator
-#
+
+def postprocess(nominator: list[float],
+                denominator: list[float],
+                rounding_precision=1) -> tuple[list[float], list[float]]:
+    """
+    Постобработка данных. Недоделано, пока отключена.
+
+    :param nominator:
+    :param denominator:
+    :param rounding_precision:
+    :return:
+    """
+
+    nominator = list(nominator)
+    denominator = list(denominator)
+
+    division_is_ok = True
+    min_coef = 1e10
+
+    for i in range(len(nominator)):
+        if 1 < nominator[i]:
+            min_coef = min(min_coef, nominator[i])
+        if 1 < nominator[i] < 10:
+            division_is_ok = False
+
+    for i in range(len(denominator)):
+        if 1 < denominator[i] < 10:
+            division_is_ok = False
+
+    if division_is_ok:
+        for i in range(len(nominator)):
+            if nominator[0] < 1:
+                nominator.pop(0)
+        for i in range(len(denominator)):
+            if denominator[0] < 1:
+                denominator.pop(0)
+
+    for i in range(len(nominator)):
+        nominator[i] /= min_coef
+    for i in range(len(denominator)):
+        denominator[i] /= min_coef
+
+    if division_is_ok:
+        for i in range(len(nominator)):
+            nominator[i] = round(nominator[i], rounding_precision)
+        for i in range(len(denominator)):
+            denominator[i] = round(denominator[i], rounding_precision)
+
+    for i in range(len(nominator)):
+        if nominator[0] == 0:
+            nominator.pop(0)
+
+    for i in range(len(denominator)):
+        if denominator[0] == 0:
+            denominator.pop(0)
+
+    return nominator, denominator

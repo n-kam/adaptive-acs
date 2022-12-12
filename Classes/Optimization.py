@@ -77,11 +77,9 @@ class Optimization(object):
                 target_func: callable(list[float]),
                 values: list[float],
                 tf_precision: float = 0.025,
-                # tf_precision: float = 0.05,  # todo: revert before commit!!!
                 step: float = 0.1,
                 max_iter: int = 10_000,
                 output_iter_step: int = 1000,
-                # max_iter: int = 10,  # todo: revert before commit!!!
                 stepdown_enabled: bool = True) -> list[float]:
         """
         Не-очень-классический градиентный спуск. Отличается от классического переменным шагом, который в зависимости от значения целевой функции на следующем шаге может как уменьшаться, так и увеличиваться.
