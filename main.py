@@ -1,7 +1,7 @@
-import logging
 import os.path
 
 from Classes import DataReader, IdentifyOOC
+from Classes.TransferFunction import TransferFunction
 
 # CONFIGURATION
 
@@ -43,5 +43,7 @@ w_ooc = IdentifyOOC.identify(model_transient_response,
 
 # ШАГ2. Подбор параметров ПИД-регулятора.
 
+# Чтобы не ждать каждый раз завершения первого шага, можно его закомментировать и забить результат напрямую:
+w_ooc = TransferFunction([1], [1, 2, 2])
 # Кому нужно будет получить числитель и знаменатель подобранной передаточной функции модели, делать это следует так:
 [transfer_func_nominator, transfer_func_denominator] = w_ooc.get_coefficients()
