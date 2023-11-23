@@ -15,13 +15,33 @@ class Algorythm(Enum):
     gauss_seidel = "gauss_seidel"
 
 
+def start(target_func: callable(list[float]),
+          values: list[float],
+          algorythm: Algorythm = Algorythm.classic,
+          tf_precision: float = 0.05,
+          step: float = 0.1,
+          max_iter: int = 10_000,
+          output_iter_step: int = 100,
+          gauss_seidel_tf_derivative_precision: float = 1e-3,
+          stepdown_enabled=True) -> list[float]:
+    match algorythm:
+        case Algorythm.adam:
+            return adam(target_func, values, tf_precision, step, max_iter=max_iter, output_iter_step=output_iter_step)
+        case Algorythm.classic:
+            return classic(target_func, values, tf_precision, step, max_iter, output_iter_step)
+        case Algorythm.gauss_seidel:
+            return gauss_seidel(target_func, values, tf_precision, gauss_seidel_tf_derivative_precision, step, max_iter)
+
+
 def adam(target_func, values: list[float],
-         tf_precision=0.01,
-         step=0.001,
+         tf_precision=0.05,
+         step=0.1,
          beta1=0.9,
          beta2=0.999,
-         max_iter=15_000) -> list[float]:
-    log.info("Started Adam optimization algorithm")
+         max_iter=15_000,
+         output_iter_step: int = 100) -> list[float]:
+    log.info("Начало расчета методом градиентного спуска Адама. Промежуточные результаты будут выводиться "
+             "каждые {} итераций. Можете пока пойти заварить себе чай...".format(output_iter_step))
     values = numpy.array(values)
     best_values = values
     biased_first_estimate = numpy.array([0.0] * len(values))
@@ -52,28 +72,29 @@ def adam(target_func, values: list[float],
             best_values = values
 
         # Вывод в лог по ходу расчетов каждые N итераций
-        output_iter_step = 10
         if iteration % output_iter_step == 0:
             time_now = time.time()
             run_speed = output_iter_step / (time_now - time_prev_output)
             time_prev_output = time_now
             eta_minutes = (max_iter - iteration) / run_speed / 60
-            log.debug("({}) Running Adam optimization. Speed: {:.1f} iter/s. Time passed: {:.1f} min. "
-                      "Max iter ETA: {:.1f} min.".format(iteration,
-                                                         run_speed,
-                                                         (time_now - time_start) / 60,
-                                                         eta_minutes))
-            log.debug("val  = {}; tf = {}".format(values, target_func_curr_value))
-            log.debug("grad = {};\n".format(gradient))
+            log.info("({}) Метод Адама. Скорость: {:.1f} итер./с. Время работы: {:.1f} мин. "
+                     "Прибл. время до отсечки по итерациям: {:.1f} min.".format(iteration,
+                                                                                run_speed,
+                                                                                (time_now - time_start) / 60,
+                                                                                eta_minutes))
+            log.info("Значения параметров: {}".format(values))
+            log.info("Вектор градиента:    {}".format(gradient))
+            log.info("Целевая функция = {}; Текущий град. шаг = {}\n".format(target_func_curr_value, step))
 
     time_end = time.time()
 
-    log.info("Time of run: {:.0f} sec. Integral quality current: {}, min: {}".format(time_end - time_start,
-                                                                                     target_func_curr_value,
-                                                                                     target_func_min_value))
+    log.info("Время работы: {:.0f} с. Значение целевой функции последнее: {:.5f}, минимальное: {:.5f}".format(
+        time_end - time_start,
+        target_func_curr_value,
+        target_func_min_value))
 
     if iteration == max_iter:
-        log.warning("Maximum number of iterations exceeded. Returned values may be suboptimal")
+        log.warning("Выход за отсечку по итерациям. Итоговые значения могут быть неоптимальными")
         values = best_values
 
     return values
@@ -81,14 +102,12 @@ def adam(target_func, values: list[float],
 
 def classic(target_func: callable(list[float]),
             values: list[float],
-            tf_precision: float = 0.025,
+            tf_precision: float = 0.05,
             step: float = 0.1,
             max_iter: int = 10_000,
-            output_iter_step: int = 1000,
-            stepdown_enabled: bool = True) -> list[float]:
+            output_iter_step: int = 100) -> list[float]:
     """
-    Не-очень-классический градиентный спуск. Отличается от классического переменным шагом, который в зависимости от
-    значения целевой функции на следующем шаге может как уменьшаться, так и увеличиваться.
+    Классический градиентный спуск
 
     :param target_func: Целевая функция, значение которой необходимо минимизировать в результате рассчета.
     :param values: Список исходных значений, передаваемых в целевую функцию.
@@ -96,7 +115,6 @@ def classic(target_func: callable(list[float]),
     :param step: Начальный шаг градиентного спуска.
     :param output_iter_step: Выводить промежуточные результаты каждые N итераций.
     :param max_iter: Отсечка по итерациям, при превышении которой алгоритм будет остановлен.
-    :param stepdown_enabled: Использовать ли спуск с переменным шагом или без (классический).
     :return: Список из оптимизированных по минимуму целевой функции входных параметров.
     """
 
@@ -109,6 +127,8 @@ def classic(target_func: callable(list[float]),
     target_func_curr_value = target_func(values)
     target_func_min_value = 1e10
 
+    stepdown_enabled_experimental = False
+
     while (iteration < max_iter) & (target_func_curr_value > tf_precision):
         iteration += 1
         gradient = numpy.array(helpers.gradient(target_func, values))
@@ -116,9 +136,9 @@ def classic(target_func: callable(list[float]),
         # Если целевая функция на следующем шаге станет больше, чем на текущем, или перескочит экстремум,
         # сделать градиентный шаг поменьше
         target_func_next_value = target_func(values - step * gradient)
-        if stepdown_enabled & (target_func_next_value > target_func_curr_value) & (step > 1e-8):
+        if stepdown_enabled_experimental & (target_func_next_value > target_func_curr_value) & (step > 1e-5):
             step /= 2
-        elif stepdown_enabled:
+        elif stepdown_enabled_experimental:
             # todo: подобрано на глаз. Это максимальное значение, которое можно поставить,
             #  при котором у меня не начиналось расхождение. Но это только для текущей функции.
             #  При других снятых значениях, может иметь смысл этот коэффициент поменять
@@ -162,7 +182,7 @@ def classic(target_func: callable(list[float]),
     return values
 
 
-def gauss_seidel(target_func, values: list[float],
+def gauss_seidel(target_func: callable(list[float]), values: list[float],
                  # tf_precision=0.01,  # если порядок теоретический заведомо больше, чем модельный
                  tf_precision=0.05,
                  tf_derivative_precision=1e-3,

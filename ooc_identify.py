@@ -83,16 +83,7 @@ def identify(model_transient_response: list[list[float, float, float]],
     # Вызов оптимизатора
     log.info("Исходные значения коэффициентов. Числитель: {}. Знаменатель: {}".format(nominator, denominator))
     optimization_target_func = TargetFunction(model_transient_response_values, len(nominator), len(denominator))
-    if algorithm == optimization.Algorythm.adam:
-        log.warning("ИСПОЛЬЗОВАНИЕ ГРАД. СПУСКА АДАМА НЕ РЕКОМЕНДУЕТСЯ")
-        ab_values = optimization.adam(optimization_target_func.tf, ab_values)
-    elif algorithm == optimization.Algorythm.classic:
-        ab_values = optimization.classic(optimization_target_func.tf, ab_values)
-    elif algorithm == optimization.Algorythm.gauss_seidel:
-        log.warning("ИСПОЛЬЗОВАНИЕ АЛГОРИТМА ГАУССА-ЗЕЙДЕЛЯ НЕ РЕКОМЕНДУЕТСЯ")
-        ab_values = optimization.gauss_seidel(optimization_target_func.tf, ab_values)
-    else:
-        raise Exception("Неизвестный алгоритм:{}".format(algorithm))
+    ab_values = optimization.start(optimization_target_func.tf, ab_values, algorithm)
 
     # Разделяем числитель и знаменатель из одного списка на два
     nominator = ab_values[:len(nominator)]
@@ -105,7 +96,7 @@ def identify(model_transient_response: list[list[float, float, float]],
     log.info("Подобранные значения коэффициентов. Числитель: {}. Знаменатель: {}".format(nominator, denominator))
     optimization_transfer_function = TransferFunction(nominator, denominator)
 
-    # Строим графики. Красный - модель. Зеленый - подобранный. При хорошем подборе они могут практически
+    # Строим графики. Черный - модель, красный - подобранный. При хорошем подборе они могут практически
     # накладываться друг на друга. Приближайте, если хотите убедиться, что оба построились
     if results_plotting_enabled:
         helpers.plot_results(model_transient_response_times,
