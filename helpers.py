@@ -67,7 +67,8 @@ def plot_results(model_response_times: list[float],
     ПХ модели строится красным цветом. Теоретическая - зеленым.
 
     :param model_response_times: Список из точек времени, для которых строить график.
-    :param model_response_values: Список значений модельной переходной характеристики, соответствующей заданным точкам времени.
+    :param model_response_values: Список значений модельной переходной характеристики,
+    соответствующей заданным точкам времени.
     :param nominator: Список коэффициентов числителя теоретически подобранной передаточной функции.
     :param denominator: Список коэффициентов знаменателя теоретически подобранной передаточной функции.
     """
@@ -75,16 +76,26 @@ def plot_results(model_response_times: list[float],
     logging.getLogger('matplotlib').setLevel(logging.WARNING)
     logging.getLogger('PIL').setLevel(logging.WARNING)
 
-    pyplot.grid(True)
+    optimization_tf = matlab.tf(nominator, denominator)
+    [tf_values, _] = matlab.step(optimization_tf, model_response_times)
+
     # todo: избавиться от хардкода:
     pyplot.xticks(numpy.arange(0, 11, 1))
     pyplot.yticks(numpy.arange(0, 1.1, 0.1))
 
-    pyplot.plot(model_response_times, model_response_values, 'red')
+    pyplot.grid(True)
+    model_line_color = 'black'
+    theor_line_color = 'red'
+    pyplot.title("Переходные характеристики")
+    pyplot.xlabel("t, с")
+    pyplot.ylabel("h(t)")
 
-    optimization_tf = matlab.tf(nominator, denominator)
-    [tf_values, x1] = matlab.step(optimization_tf, model_response_times)
-    pyplot.plot(model_response_times, tf_values, 'green')
+    pyplot.plot(model_response_times, model_response_values, model_line_color, label="Модельная")
+    pyplot.plot(model_response_times, tf_values, theor_line_color, label="Подобранная")
+
+    log.info("На графике: переходная характеристика модельная - {}, подобранная - {}".format(model_line_color,
+                                                                                             theor_line_color))
+    pyplot.legend(loc="lower right")
     pyplot.show()
 
 
@@ -173,9 +184,12 @@ def preprocess_data(values_list: list[list[float, float, float]], time_step: flo
     """
     Предварительная обработка данных.
 
-    Проходимся по списку снятых значений и находим ближайшие значения времен для каждого желаемого времени (от 0 с шагом time_step). Для найденных значений времени складываем значения переходной характеристики из последнего столбца в новый список.
+    Проходимся по списку снятых значений и находим ближайшие значения времен для каждого желаемого времени
+    (от 0 с шагом time_step). Для найденных значений времени складываем значения переходной характеристики из
+    последнего столбца в новый список.
 
-    :param values_list: Исходная переходная характеристика. Матрица, в которой каждая строка является списком [время, входной сигнал, выходной сигнал].
+    :param values_list: Исходная переходная характеристика. Матрица, в которой каждая строка является списком
+    [время, входной сигнал, выходной сигнал].
     :param time_step: Шаг времени, с которым проходимся по исходной матрице значений, выбирая ближайшее имеющееся время.
     :return: Кортеж из двух списков: списка найденных значений выходного сигнала, списка найденных значений времени.
     """
@@ -286,11 +300,11 @@ def gradient(func: callable(list[float]), values: list[float]) -> list[float]:
     :param values: Список переменных вызываемой функции.
     :return: Список-вектор градиента.
     """
-    gradient = list()
+    grad = list()
     for i in range(len(values)):
-        gradient.append(partial_derivative(func, values, i))
+        grad.append(partial_derivative(func, values, i))
 
-    return gradient
+    return grad
 
 
 def test_gradient() -> None:
