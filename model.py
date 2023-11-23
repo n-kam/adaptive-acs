@@ -15,7 +15,7 @@ class TransferFunction(object):
         Вычислить значение передаточной функции в точке.
 
         :param p: Точка, в которой будет произведено вычисление.
-        :return: Значение передаточной функции.
+        :return: Значение передаточной функции в точке p.
         """
         nominator_val = 0.0
         nominator_len = len(self.nominator_list)
