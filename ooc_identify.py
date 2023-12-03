@@ -89,7 +89,8 @@ def identify(model_transient_response: list[list[float, float, float]],
     nominator = ab_values[:len(nominator)]
     denominator = ab_values[len(nominator):]
 
-    # Постобработка данных # todo: доделать в включить
+    # Постобработка данных
+    # todo: доделать в включить
     # log.debug("Optimized coefficients without postprocessing: "
     #           "nominator:{}, denominator:{}".format(nominator, denominator))
     # nominator, denominator = postprocess_data(nominator, denominator)

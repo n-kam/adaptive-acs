@@ -1,5 +1,6 @@
 import math
 
+import time
 import numdifftools
 from control import matlab
 from matplotlib import pyplot
@@ -31,7 +32,17 @@ class UDPOut(object):
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((ip, port))
 
+    def buff_flush(self):
+        self.sock.setblocking(False)
+        while True:
+            try:
+                self.sock.recv(1024)
+            except BlockingIOError:
+                self.sock.setblocking(True)
+                break
+
     def rcv(self):
+        self.buff_flush()
         byte_signal = self.sock.recvfrom(8)[0]
         return struct.unpack('d', byte_signal)[0]
 
@@ -140,7 +151,6 @@ def read_tr_from_model(ip_in: str = "localhost",
     :param output_file_name: Имя файла, в который записать выходные данные.
     :return: Переходная характеристика в формате списка из списков вида [время, входной сигнал, выходной сигнал]
     """
-    import time
     udp_input_socket = UDPIn(ip_in, port_in)
     udp_set_point_socket = UDPIn(ip_in, port_set_point)
     udp_output_socket = UDPOut(ip_out, port_out)
@@ -309,8 +319,8 @@ def gradient(func: callable(list[float]), values: list[float]) -> list[float]:
 
 def test_gradient() -> None:
     """
-    Метод для тестов и дебага. Сравнивает градиент определенной функции, рассчитанный быстрым способом с градиентом,
-    рассчитанным с помощью библиотеки numdifftools.
+    Метод для тестов и дебага. Сравнивает градиент, рассчитанный быстрым способом, с градиентом, рассчитанным
+    с помощью библиотеки numdifftools.
     """
 
     def fun(vals) -> float:
